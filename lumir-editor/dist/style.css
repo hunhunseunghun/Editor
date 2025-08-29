@@ -1,0 +1,13 @@
+@import '@blocknote/core/fonts/inter.css';
+@import '@blocknote/mantine/style.css';
+@import '@blocknote/react/style.css';
+
+/* BlockNote/Mantine 기본 폰트를 덮어씀 */
+.lumirEditor {
+  --mantine-font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica,
+    sans-serif;
+}
+.lumirEditor .bn-editor,
+.lumirEditor .bn-inline-content {
+  font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica, sans-serif !important;
+}

@@ -1,0 +1,67 @@
+{
+  "name": "@kingdoo/editor",
+  "version": "0.1.14",
+  "private": false,
+  "description": "Lumir BlockNote-based React editor component (library scaffolding, no publish)",
+  "keywords": [
+    "editor",
+    "blocknote",
+    "rich-text",
+    "react",
+    "lumir"
+  ],
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/your-repo.git"
+  },
+  "homepage": "https://github.com/your-org/your-repo#readme",
+  "bugs": {
+    "url": "https://github.com/your-org/your-repo/issues"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --dts --format cjs,esm --sourcemap && node scripts/copy-style.js",
+    "dev": "tsup src/index.ts --dts --format cjs,esm --sourcemap --watch --onSuccess \"node scripts/copy-style.js\"",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run type-check && npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "dependencies": {
+    "@blocknote/core": "^0.35.0",
+    "@blocknote/react": "^0.35.0",
+    "@blocknote/mantine": "^0.35.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsup": "^8.0.1",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ]
+}
