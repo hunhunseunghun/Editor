@@ -1,21 +1,29 @@
 'use client';
-import dynamic from 'next/dynamic';
 
-const LumirEditor = dynamic(
-  () => import('@kingdoo/editor').then((m) => m.LumirEditor),
-  { ssr: false },
-);
+import React from 'react';
+import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
+import EditorArea from '@/components/EditorArea';
 
 export default function Home() {
   return (
-    <div className='min-h-screen p-6'>
-      <h1 className='text-2xl font-semibold mb-4'>Lumir Editor (local)</h1>
-      <div className='w-full max-w-4xl h-[600px]'>
-        <LumirEditor
-          className=''
-          includeDefaultStyles={true}
-          sideMenuAddButton={false}
-        />
+    <div className='h-screen bg-stone-50 dark:bg-stone-900 flex overflow-hidden'>
+      {/* 사이드바 - 고정 너비 */}
+      <div className='w-60 flex-shrink-0 border-r border-stone-200 dark:border-stone-700'>
+        <Sidebar />
+      </div>
+
+      {/* 메인 콘텐츠 영역 */}
+      <div className='flex-1 flex flex-col overflow-hidden'>
+        {/* 헤더 */}
+        <div className='h-16 flex-shrink-0 border-b border-stone-200 dark:border-stone-700'>
+          <Header />
+        </div>
+
+        {/* 에디터 영역 */}
+        <div className='flex-1 overflow-hidden'>
+          <EditorArea />
+        </div>
       </div>
     </div>
   );

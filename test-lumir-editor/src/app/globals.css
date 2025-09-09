@@ -1,28 +1,230 @@
+/* Tailwind imports */
 @import 'tailwindcss';
-@import '@kingdoo/editor/style.css';
-@source "../lumir-editor";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Lumir Editor styles */
+@import '@blocknote/mantine/style.css';
+@import '@blocknote/react/style.css';
+
+/* BlockNote/Mantine 기본 폰트를 덮어씀 */
+.lumirEditor {
+  --mantine-font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica,
+    sans-serif;
 }
+.lumirEditor .bn-editor,
+.lumirEditor .bn-inline-content {
+  font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica, sans-serif !important;
+}
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Font priority: 1.Pretendard 2.Inter 3.Noto Sans KR 4.Roboto */
+  --font-sans: 'Pretendard', var(--font-inter), var(--font-noto-sans-kr),
+    var(--font-roboto), -apple-system, BlinkMacSystemFont, system-ui,
+    'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic',
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Consolas,
+    'Liberation Mono', Menlo, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+  html {
+    /* Font priority: 1.Pretendard 2.Inter 3.Noto Sans KR 4.Roboto */
+    font-family: 'Pretendard', var(--font-inter), var(--font-noto-sans-kr),
+      var(--font-roboto), -apple-system, BlinkMacSystemFont, system-ui,
+      'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic',
+      'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* 🔥 DND 시스템 격리 최적화 */
+  [data-sidebar-container] {
+    /* React Arborist DND 영역 */
+    position: relative;
+    z-index: 50;
+    isolation: isolate;
+  }
+
+  [data-editor-container] {
+    /* BlockNote DND 영역 */
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+  }
+
+  /* React Arborist DND 최적화 */
+  [data-sidebar-container] .react-arborist-tree * {
+    /* React Arborist DND 이벤트가 BlockNote 영역으로 번지지 않도록 */
+    pointer-events: auto;
+  }
+
+  /* BlockNote DND 최적화 */
+  [data-editor-container] .bn-container {
+    /* BlockNote DND 이벤트가 React Arborist 영역으로 번지지 않도록 */
+    position: relative;
+    z-index: 2;
+    isolation: isolate;
+  }
+
+  /* 드래그 프리뷰 위치 보정 */
+  .react-arborist-drag-preview {
+    position: fixed !important;
+    z-index: 9999 !important;
+    pointer-events: none !important;
+    transform-origin: top left !important;
+  }
+
+  /* 🔥 에디터 영역에서 React Arborist 커서 완전 차단 */
+  [data-editor-container] * {
+    position: relative;
+    z-index: 10;
+  }
+
+  /* React Arborist 커서가 에디터 영역에 표시되지 않도록 강제 격리 */
+  [data-editor-container]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    pointer-events: none;
+    background: transparent;
+  }
+
+  /* 🔥 에디터 영역의 모든 드롭 인디케이터 완전히 숨김 */
+  [data-editor-container] [style*='height: 4px'],
+  [data-editor-container] [style*='background-color: rgb(59, 130, 246)'],
+  [data-editor-container] [style*='background-color: #3b82f6'] {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    display: none !important;
+  }
+
+  /* 🔥 사이드바 드롭존 표시 활성화 */
+  [data-sidebar-container] .react-arborist-tree {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 사이드바 내부의 드롭 인디케이터는 허용 (더 연한 색상) */
+  [data-sidebar-container] [style*='position: absolute'][style*='height: 4px'] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 0.6 !important; /* 🔥 더 연하게 변경 */
+  }
+
+  /* 🔥 Tailwind CSS로 드롭존 스타일링 처리됨 - CSS 규칙 제거 */
 }
