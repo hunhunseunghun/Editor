@@ -30,6 +30,7 @@ interface EditContextType {
   refetch: () => void;
 
   fetchData: () => Promise<void>;
+  mountEditPage: () => Promise<void>;
 
   // 전역 데이터 업데이트 함수들
   문서를_추가한다: (document: Document) => void;
@@ -123,9 +124,20 @@ export function EditProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
-      console.log('Edit page mounted successfully:', data);
+      console.log('✅ EditContext fetchData 성공:', {
+        totalData: data,
+        sidebarDocuments: data.sidebar?.documents?.length || 0,
+        sidebarFolders: data.sidebar?.folders?.length || 0,
+        sidebarUser: data.sidebar?.user?.email,
+      });
 
       if (data.sidebar) {
+        console.log('📊 EditContext 상태 업데이트:', {
+          documentsToSet: data.sidebar.documents?.length || 0,
+          foldersToSet: data.sidebar.folders?.length || 0,
+          userToSet: data.sidebar.user?.email,
+        });
+
         setDocuments(data.sidebar.documents || []);
         setFolders(data.sidebar.folders || []);
         setUser(data.sidebar.user || { name: '', email: '' });
@@ -182,6 +194,11 @@ export function EditProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // mountEditPage 함수 (fetchData와 동일)
+  const mountEditPage = useCallback(async () => {
+    await fetchData();
+  }, [fetchData]);
+
   const contextValue = {
     documents,
     folders,
@@ -192,6 +209,7 @@ export function EditProvider({ children }: { children: ReactNode }) {
     error,
     refetch,
     fetchData,
+    mountEditPage,
     현재_문서를_수정한다,
     문서를_수정한다,
     폴더들을_수정한다,

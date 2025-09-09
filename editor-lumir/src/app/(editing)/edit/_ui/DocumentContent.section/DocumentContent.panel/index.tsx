@@ -1,7 +1,6 @@
 'use client';
 
 import { useDocumentContent } from '@/app/(editing)/edit/_context/DocumentContentContext';
-import { useEdit } from '@/app/(editing)/edit/_context/EditContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui';
 import { Plus } from 'lucide-react';
@@ -9,14 +8,12 @@ import EditorModule from './Editor.module/index';
 
 export default function DocumentContentPanel() {
   const { currentDocument, 새로운_문서를_만든다 } = useDocumentContent();
-  const { isSidebarMinimized } = useEdit();
 
   return (
     <main
       className={cn(
         'flex-1 bg-background transition-all duration-300',
-        'h-full w-full overflow-y-auto',
-        isSidebarMinimized ? 'px-6' : 'px-4',
+        'h-full w-full overflow-y-auto px-4',
       )}>
       <div className='flex-1 flex flex-col bg-white h-full min-h-0'>
         {currentDocument ? (

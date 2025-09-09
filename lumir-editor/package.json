@@ -1,6 +1,6 @@
 {
   "name": "@kingdoo/editor",
-  "version": "0.1.14",
+  "version": "0.1.15",
   "private": false,
   "description": "Lumir BlockNote-based React editor component (library scaffolding, no publish)",
   "keywords": [

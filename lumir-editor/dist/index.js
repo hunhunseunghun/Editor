@@ -44,7 +44,7 @@ var createObjectUrlUploader = async (file) => {
 var fileToBase64 = async (file) => await new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.onload = () => resolve(String(reader.result));
-  reader.onerror = reject;
+  reader.onerror = () => reject(new Error("FileReader failed"));
   reader.readAsDataURL(file);
 });
 function LumirEditor({
@@ -126,13 +126,17 @@ function LumirEditor({
       trailingBlock,
       resolveFileUrl,
       uploadFile: async (file) => {
-        const useFallback = !uploadFile;
-        const fallbackUploader = storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader;
+        const custom = uploadFile;
+        const fallback = storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader;
         try {
-          const url = useFallback ? await fallbackUploader(file) : await uploadFile(file);
-          return url;
-        } catch (e) {
-          throw e;
+          if (custom) return await custom(file);
+          return await fallback(file);
+        } catch (_) {
+          try {
+            return await createObjectUrlUploader(file);
+          } catch {
+            throw new Error("Failed to process file for upload");
+          }
         }
       },
       pasteHandler: (ctx) => {
@@ -140,8 +144,12 @@ function LumirEditor({
         const fileList = event?.clipboardData?.files ?? null;
         const files = fileList ? Array.from(fileList) : [];
         const accepted = files.filter(
-          (f) => f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || "")
+          (f) => f.size > 0 && (f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ""))
         );
+        if (files.length > 0 && accepted.length === 0) {
+          event.preventDefault();
+          return true;
+        }
         if (accepted.length === 0) return defaultPasteHandler() ?? false;
         event.preventDefault();
         (async () => {
@@ -150,7 +158,13 @@ function LumirEditor({
             try {
               const url = await doUpload(file);
               editor2.pasteHTML(`<img src="${url}" alt="image" />`);
-            } catch {
+            } catch (err) {
+              console.warn(
+                "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
+              continue;
             }
           }
         })();
@@ -225,24 +239,27 @@ function LumirEditor({
       }
     };
     const handleDrop = (e) => {
-      if (e.defaultPrevented) return;
       if (!e.dataTransfer) return;
-      const items = Array.from(e.dataTransfer.items ?? []);
-      const files = items.filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f) => !!f);
-      const accepted = files.filter(
-        (f) => f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || "")
-      );
-      if (accepted.length === 0) return;
+      const hasFiles = (e.dataTransfer.types ?? []).includes("Files");
+      if (!hasFiles) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation?.();
+      const items = Array.from(e.dataTransfer.items ?? []);
+      const files = items.filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f) => !!f);
+      const accepted = files.filter(
+        (f) => f.size > 0 && (f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ""))
+      );
+      if (accepted.length === 0) return;
       (async () => {
         const doUpload = uploadFile ?? (storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader);
         for (const f of accepted) {
           try {
             const url = await doUpload(f);
             editor?.pasteHTML(`<img src="${url}" alt="image" />`);
-          } catch {
+          } catch (err) {
+            console.warn("Image upload failed, skipped:", f.name || "", err);
+            continue;
           }
         }
       })();

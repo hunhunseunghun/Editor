@@ -8,9 +8,33 @@ import { TreeNode, FolderNode, DocumentNode } from '@/types/tree';
 import { useEdit } from '@/app/(editing)/edit/_context/EditContext';
 import { NodeApi } from 'react-arborist';
 
+// 문서 타입 정의 (API에서 받는 실제 데이터 구조)
+interface DocumentData {
+  _id: string;
+  title?: string;
+  folderId?: string | null;
+  order?: number;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  isLocked?: boolean;
+  isDeleted?: boolean;
+}
+
+// 폴더 타입 정의 (API에서 받는 실제 데이터 구조)
+interface FolderData {
+  _id: string;
+  name?: string;
+  parentId?: string | null;
+  order?: number;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  isLocked?: boolean;
+  isDeleted?: boolean;
+}
+
 interface TreeViewModuleProps {
-  documents: any[];
-  folders: any[];
+  documents: DocumentData[];
+  folders: FolderData[];
 }
 
 export default function TreeViewModule({
@@ -29,126 +53,96 @@ export default function TreeViewModule({
   const router = useRouter();
   const [opens, setOpens] = useState<Record<string, boolean>>({});
 
-  // 문서와 폴더를 트리 구조로 변환
+  // 하드코딩된 테스트 데이터 (개발용)
   const treeData = useMemo((): TreeNode[] => {
-    // 폴더를 트리 노드로 변환
-    const folderNodes: FolderNode[] = folders.map((folder) => ({
-      id: folder._id,
-      name: folder.name,
-      type: 'folder',
-      parentId: folder.parentId,
-      folderId: null,
-      order: folder.order || 0,
-      createdAt: folder.createdAt,
-      updatedAt: folder.updatedAt,
-      isLocked: folder.isLocked || false,
-      isDeleted: folder.isDeleted || false,
-      children: documents
-        .filter((doc) => doc.folderId === folder._id)
-        .map((doc) => ({
-          id: doc._id,
-          name: doc.title,
-          type: 'document' as const,
-          parentId: folder._id,
-          folderId: doc.folderId,
-          order: doc.order || 0,
-          createdAt: doc.createdAt,
-          updatedAt: doc.updatedAt,
-          isLocked: doc.isLocked || false,
-          isDeleted: doc.isDeleted || false,
-          children: [],
-        })),
-    }));
+    console.log('🌲 TreeView 하드코딩 데이터 사용');
 
-    // 루트 레벨 문서들
-    const rootDocuments: DocumentNode[] = documents
-      .filter((doc) => !doc.folderId)
-      .map((doc) => ({
-        id: doc._id,
-        name: doc.title,
-        type: 'document',
+    const hardcodedData: TreeNode[] = [
+      // 하드코딩된 폴더
+      {
+        id: '68bfcf76345a021f12b1e69b', // 실제 MongoDB 폴더 ID
+        name: 'Lumir Editor',
+        type: 'folder' as const,
         parentId: null,
-        folderId: doc.folderId,
-        order: doc.order || 0,
-        createdAt: doc.createdAt,
-        updatedAt: doc.updatedAt,
-        isLocked: doc.isLocked || false,
-        isDeleted: doc.isDeleted || false,
-        children: [],
-      }));
+        folderId: null,
+        order: 1000,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isLocked: false,
+        isDeleted: false,
+        children: [
+          // 폴더 안의 하드코딩된 문서
+          {
+            id: '68bfcf76345a021f12b1e69c', // 실제 MongoDB 문서 ID
+            name: 'Lumir Editor',
+            type: 'document' as const,
+            parentId: '68bfcf76345a021f12b1e69b',
+            folderId: '68bfcf76345a021f12b1e69b',
+            order: 1000,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            isLocked: false,
+            isDeleted: false,
+            children: [],
+          }
+        ],
+      }
+    ];
 
-    return [...folderNodes, ...rootDocuments];
-  }, [documents, folders]);
+    console.log('✅ TreeView 하드코딩 데이터 준비 완료:', {
+      totalNodes: hardcodedData.length,
+      sample: hardcodedData.map((node) => ({
+        id: node.id,
+        name: node.name,
+        type: node.type,
+      })),
+    });
 
-  // 노드 생성 핸들러
+    return hardcodedData;
+  }, []); // 의존성 제거로 항상 같은 데이터 반환
+
+  // 노드 생성 핸들러 (비활성화됨 - 개발용)
   const handleCreate = useCallback(
-    (args: {
+    async (args: {
       parentId: string;
       parentNode: NodeApi<TreeNode>;
       index: number;
       type: 'internal' | 'leaf';
     }) => {
-      const { type } = args;
-      if (type === 'leaf') {
-        문서를_만든다();
-      } else {
-        폴더를_만든다();
-      }
+      console.log('🔒 생성 기능 비활성화됨 (개발용 하드코딩 모드)');
+      alert('개발용 모드에서는 생성 기능이 비활성화되어 있습니다.');
+      
       // 임시 ID 반환 (실제로는 생성된 노드의 ID를 반환해야 함)
       return { id: `temp-${Date.now()}` };
     },
-    [문서를_만든다, 폴더를_만든다],
+    [], // 의존성 제거
   );
 
-  // 노드 삭제 핸들러
+  // 노드 삭제 핸들러 (비활성화됨 - 개발용)
   const handleDelete = useCallback(
     (args: { ids: string[]; nodes: NodeApi<TreeNode>[] }) => {
-      args.ids.forEach((id) => {
-        const node = treeData.find((n) => n.id === id);
-        if (node) {
-          if (node.type === 'document') {
-            문서를_삭제한다(id);
-          } else {
-            폴더를_삭제한다(id);
-          }
-        }
-      });
+      console.log('🔒 삭제 기능 비활성화됨 (개발용 하드코딩 모드)');
+      alert('개발용 모드에서는 삭제 기능이 비활성화되어 있습니다.');
     },
-    [treeData, 문서를_삭제한다, 폴더를_삭제한다],
+    [], // 의존성 제거
   );
 
-  // 노드 이동 핸들러
+  // 노드 이동 핸들러 (비활성화됨 - 개발용)
   const handleMove = useCallback(
     (args: { dragIds: string[]; parentId: string | null; index: number }) => {
-      const { dragIds, parentId } = args;
-      dragIds.forEach((dragId) => {
-        const node = treeData.find((n) => n.id === dragId);
-        if (node) {
-          if (node.type === 'document') {
-            문서를_수정한다(dragId, { folderId: parentId });
-          } else {
-            폴더를_수정한다(dragId, { parentId });
-          }
-        }
-      });
+      console.log('🔒 이동 기능 비활성화됨 (개발용 하드코딩 모드)');
+      alert('개발용 모드에서는 이동 기능이 비활성화되어 있습니다.');
     },
-    [treeData, 문서를_수정한다, 폴더를_수정한다],
+    [], // 의존성 제거
   );
 
-  // 노드 이름 변경 핸들러
+  // 노드 이름 변경 핸들러 (비활성화됨 - 개발용)
   const handleRename = useCallback(
     (args: { id: string; name: string; node: NodeApi<TreeNode> }) => {
-      const { id, name } = args;
-      const node = treeData.find((n) => n.id === id);
-      if (node) {
-        if (node.type === 'document') {
-          문서를_수정한다(id, { title: name });
-        } else {
-          폴더를_수정한다(id, { name });
-        }
-      }
+      console.log('🔒 이름 변경 기능 비활성화됨 (개발용 하드코딩 모드)');
+      alert('개발용 모드에서는 이름 변경 기능이 비활성화되어 있습니다.');
     },
-    [treeData, 문서를_수정한다, 폴더를_수정한다],
+    [], // 의존성 제거
   );
 
   // 노드 선택 핸들러 - 클라이언트 사이드 네비게이션 사용
@@ -186,6 +180,21 @@ export default function TreeViewModule({
     },
     [],
   );
+
+  // 빈 트리 데이터 처리
+  if (!treeData || treeData.length === 0) {
+    return (
+      <div className='mb-4'>
+        <div className='w-full p-4 text-center text-gray-500'>
+          <div className='mb-2'>📄</div>
+          <div className='text-sm'>문서가 없습니다</div>
+          <div className='text-xs text-gray-400 mt-1'>
+            새 문서를 만들어보세요
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='mb-4'>

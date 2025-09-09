@@ -10,8 +10,17 @@ export async function GET(
 ) {
   const { id } = await params;
   try {
+    console.log('🔍 API GET: 문서 조회 요청 시작', { documentId: id });
+
     const session = await auth();
+    console.log('🔐 API GET: 세션 확인', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
+    });
+
     if (!session?.user?.email) {
+      console.log('❌ API GET: 인증 실패 - 세션이 없음');
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
         { status: 401 },
@@ -19,17 +28,29 @@ export async function GET(
     }
 
     const { db } = await connectToDatabase();
+    console.log('🗄️ API GET: 데이터베이스 연결 완료');
 
     const user = await db
       .collection('users')
       .findOne({ email: session.user.email });
 
+    console.log('👤 API GET: 사용자 조회', {
+      foundUser: !!user,
+      userId: user?._id?.toString(),
+    });
+
     if (!user) {
+      console.log('❌ API GET: 사용자를 찾을 수 없음');
       return NextResponse.json(
         { error: '사용자를 찾을 수 없습니다.' },
         { status: 404 },
       );
     }
+
+    console.log('📄 API GET: 문서 조회 시도', {
+      documentId: id,
+      authorId: user._id.toString(),
+    });
 
     const document = await db.collection('documents').findOne({
       _id: new ObjectId(id),
@@ -37,7 +58,14 @@ export async function GET(
       $or: [{ isDeleted: { $exists: false } }, { isDeleted: false }],
     });
 
+    console.log('📄 API GET: 문서 조회 결과', {
+      foundDocument: !!document,
+      documentTitle: document?.title,
+      documentAuthor: document?.author?.toString(),
+    });
+
     if (!document) {
+      console.log('❌ API GET: 문서를 찾을 수 없음');
       return NextResponse.json(
         { error: '문서를 찾을 수 없습니다.' },
         { status: 404 },
@@ -76,8 +104,17 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
+    console.log('🔧 API PUT: 문서 저장 요청 시작', { documentId: id });
+
     const session = await auth();
+    console.log('🔐 API PUT: 세션 확인', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userEmail: session?.user?.email,
+    });
+
     if (!session?.user?.email) {
+      console.log('❌ API PUT: 인증 실패 - 세션이 없음');
       return NextResponse.json(
         { error: '인증이 필요합니다.' },
         { status: 401 },

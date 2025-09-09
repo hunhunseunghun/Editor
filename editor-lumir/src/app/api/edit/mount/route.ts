@@ -74,6 +74,18 @@ export async function GET() {
     const previousDocument =
       formattedDocuments.length > 1 ? formattedDocuments[1] : null;
 
+    console.log('🚀 Mount API 데이터 전송:', {
+      documentsCount: formattedDocuments.length,
+      foldersCount: formattedFolders.length,
+      userEmail: user.email,
+      sampleDocument: formattedDocuments[0]
+        ? {
+            id: formattedDocuments[0]._id,
+            title: formattedDocuments[0].title,
+          }
+        : null,
+    });
+
     // 통합된 데이터 반환
     return NextResponse.json({
       sidebar: {

@@ -43,16 +43,45 @@ export function DocumentContentProvider({ children }: { children: ReactNode }) {
   // 문서 조회 함수 (독립 구현)
   const 문서를_조회_한다 = useCallback(
     async (id: string) => {
+      // 이미 동일한 문서가 로드되어 있으면 조기 반환
+      if (currentDocument?._id === id && !loading) {
+        console.log('📖 이미 로드된 문서, 조회 건너뛰기:', { documentId: id });
+        return;
+      }
+
+      console.log('📖 문서 조회 시도:', {
+        documentId: id,
+        currentDocumentId: currentDocument?._id,
+      });
+
       setLoading(true);
       setError(null);
 
       try {
         const response = await fetch(`/api/edit/document-content/${id}`);
+        console.log('📡 API 응답 상태:', {
+          status: response.status,
+          ok: response.ok,
+          statusText: response.statusText,
+        });
+
         if (!response.ok) {
-          throw new Error('Failed to fetch document');
+          const errorData = await response.json().catch(() => ({}));
+          console.error('❌ 문서 조회 실패:', {
+            status: response.status,
+            error: errorData,
+          });
+          throw new Error(
+            errorData.error || `Failed to fetch document: ${response.status}`,
+          );
         }
 
         const document = await response.json();
+        console.log('✅ 문서 조회 성공:', {
+          documentId: document._id,
+          title: document.title,
+          contentLength: document.content?.length,
+        });
 
         // 로컬 상태 업데이트
         setPreviousDocument(currentDocument);
@@ -69,27 +98,31 @@ export function DocumentContentProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     },
-    [currentDocument, 현재_문서를_수정한다],
+    [currentDocument?._id, loading, 현재_문서를_수정한다],
   );
 
   // 문서 저장 함수 (독립 구현)
   const 문서를_저장_한다 = useCallback(
     async (id: string, content: any) => {
-      if (!currentDocument || currentDocument._id !== id) {
-        return;
-      }
+      console.log('문서 저장 시도:', {
+        id,
+        currentDocumentId: currentDocument?._id,
+        contentLength: content?.length,
+      });
+
+      // currentDocument가 없거나 ID가 일치하지 않아도 저장 시도
+      // 단, currentDocument가 있으면 그 정보를 사용하고, 없으면 기본값 사용
+      const requestBody = {
+        title: currentDocument?.title || '제목 없음',
+        content: content,
+        folderId: currentDocument?.folderId || null,
+        isLocked: currentDocument?.isLocked || false,
+      };
 
       setLoading(true);
       setError(null);
 
       try {
-        const requestBody = {
-          title: currentDocument.title,
-          content: content,
-          folderId: currentDocument.folderId,
-          isLocked: currentDocument.isLocked,
-        };
-
         const response = await fetch(`/api/edit/document-content/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -97,10 +130,14 @@ export function DocumentContentProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to save document');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || `Failed to save document: ${response.status}`,
+          );
         }
 
         const updatedDocument = await response.json();
+        console.log('문서 저장 성공:', updatedDocument);
 
         setCurrentDocument(updatedDocument);
 
@@ -175,6 +212,10 @@ export function DocumentContentProvider({ children }: { children: ReactNode }) {
       }
 
       const newDocument = await response.json();
+      console.log('✅ 새 문서 생성 성공:', {
+        documentId: newDocument._id,
+        title: newDocument.title,
+      });
 
       // 로컬 상태 업데이트
       setPreviousDocument(currentDocument);
@@ -182,6 +223,11 @@ export function DocumentContentProvider({ children }: { children: ReactNode }) {
 
       // 전역 상태 업데이트 (콜백)
       현재_문서를_수정한다(newDocument);
+
+      // 새 문서 페이지로 자동 이동
+      if (typeof window !== 'undefined') {
+        window.location.href = `/edit/${newDocument._id}`;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);

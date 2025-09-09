@@ -9,6 +9,14 @@ import ActionsModule from './Actions.module/index';
 const SidebarPanel = React.memo(function SidebarPanel() {
   const { documents, folders, user } = useSidebar();
 
+  console.log('📋 SidebarPanel에서 받은 데이터:', {
+    documentsCount: documents?.length || 0,
+    foldersCount: folders?.length || 0,
+    userEmail: user?.email,
+    documentsData: documents,
+    foldersData: folders,
+  });
+
   const [isSidebarMinimized, setIsSidebarMinimized] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -53,16 +61,7 @@ const SidebarPanel = React.memo(function SidebarPanel() {
 
         <ActionsModule toggleSidebar={toggleSidebar} />
 
-        {documents.length > 0 || folders.length > 0 ? (
-          <TreeViewModule documents={documents} folders={folders} />
-        ) : (
-          <div className='flex-1 flex items-center justify-center p-4'>
-            <div className='text-center text-gray-500'>
-              <p>문서가 없습니다</p>
-              <p className='text-sm'>새 문서를 만들어보세요</p>
-            </div>
-          </div>
-        )}
+        <TreeViewModule documents={documents || []} folders={folders || []} />
       </div>
     </aside>
   );

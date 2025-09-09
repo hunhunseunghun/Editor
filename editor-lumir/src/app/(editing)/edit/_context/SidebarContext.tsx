@@ -37,14 +37,41 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  // 로컬 상태 관리 (독립적)
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [folders, setFolders] = useState<Folder[]>([]);
+  // EditContext에서 전역 데이터 가져오기
+  const {
+    documents,
+    folders,
+    user: globalUser,
+    loading: globalLoading,
+    error: globalError,
+    문서를_수정한다: updateDocuments,
+    폴더들을_수정한다: updateFolders,
+    문서를_추가한다: addDocument,
+    폴더를_추가한다: addFolder,
+    문서를_삭제한다: deleteDocument,
+    폴더를_삭제한다: deleteFolder,
+  } = useEdit();
+
+  // 로컬 상태 (사이드바 특화 기능용)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { 문서를_수정한다: updateDocuments, 폴더들을_수정한다: updateFolders } =
-    useEdit();
+  // User 타입을 맞추기 위한 변환
+  const user: User = {
+    name: globalUser.name,
+    email: globalUser.email,
+    image: globalUser.image,
+  };
+
+  console.log('🔍 SidebarProvider 데이터 상태:', {
+    documentsCount: documents?.length || 0,
+    foldersCount: folders?.length || 0,
+    globalLoading,
+    globalError,
+    userEmail: user.email,
+    documentsData: documents,
+    foldersData: folders,
+  });
 
   // 문서 생성 함수 (독립 구현)
   const 문서를_만든다 = useCallback(async () => {
@@ -67,12 +94,18 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       }
 
       const newDocument = await response.json();
+      console.log('📝 사이드바에서 새 문서 생성 성공:', {
+        documentId: newDocument._id,
+        title: newDocument.title,
+      });
 
-      // 로컬 상태 업데이트
-      setDocuments((prev) => [newDocument, ...prev]);
+      // 전역 상태 업데이트 (새 문서 추가)
+      addDocument(newDocument);
 
-      // 전역 상태 업데이트 (콜백)
-      updateDocuments([newDocument, ...documents]);
+      // 새 문서 페이지로 자동 이동
+      if (typeof window !== 'undefined') {
+        window.location.href = `/edit/${newDocument._id}`;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -80,7 +113,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [documents, updateDocuments]);
+  }, [addDocument]);
 
   // 폴더 생성 함수 (독립 구현)
   const 폴더를_만든다 = useCallback(async () => {
@@ -103,11 +136,8 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
       const newFolder = await response.json();
 
-      // 로컬 상태 업데이트
-      setFolders((prev) => [newFolder, ...prev]);
-
-      // 전역 상태 업데이트 (콜백)
-      updateFolders([newFolder, ...folders]);
+      // 전역 상태 업데이트 (새 폴더 추가)
+      addFolder(newFolder);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setError(errorMessage);
@@ -115,7 +145,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [folders, updateFolders]);
+  }, [addFolder]);
 
   // 문서 삭제 함수 (독립 구현)
   const 문서를_삭제한다 = useCallback(
@@ -124,30 +154,36 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
+        console.log('🗑️ 문서 삭제 시도:', { documentId: id });
+
         const response = await fetch(`/api/documents/${id}`, {
           method: 'DELETE',
         });
 
         if (!response.ok) {
-          throw new Error('Failed to delete document');
+          const errorData = await response.text();
+          console.error('문서 삭제 실패:', response.status, errorData);
+          throw new Error(
+            `Failed to delete document: ${response.status} ${response.statusText}`,
+          );
         }
 
-        // 로컬 상태 업데이트
-        const updatedDocuments = documents.filter((doc) => doc._id !== id);
-        setDocuments(updatedDocuments);
+        const result = await response.json();
+        console.log('✅ 문서 삭제 성공:', result);
 
-        // 전역 상태 업데이트 (콜백)
-        updateDocuments(updatedDocuments);
+        // 전역 상태에서 문서 삭제
+        deleteDocument(id);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error';
         setError(errorMessage);
-        console.error('Delete document error:', err);
+        console.error('❌ 문서 삭제 오류:', err);
+        alert(`문서 삭제 중 오류가 발생했습니다: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
     },
-    [documents, updateDocuments],
+    [deleteDocument],
   );
 
   // 폴더 삭제 함수 (독립 구현)
@@ -157,30 +193,36 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       try {
+        console.log('🗑️ 폴더 삭제 시도:', { folderId: id });
+
         const response = await fetch(`/api/folders/${id}`, {
           method: 'DELETE',
         });
 
         if (!response.ok) {
-          throw new Error('Failed to delete folder');
+          const errorData = await response.text();
+          console.error('폴더 삭제 실패:', response.status, errorData);
+          throw new Error(
+            `Failed to delete folder: ${response.status} ${response.statusText}`,
+          );
         }
 
-        // 로컬 상태 업데이트
-        const updatedFolders = folders.filter((folder) => folder._id !== id);
-        setFolders(updatedFolders);
+        const result = await response.json();
+        console.log('✅ 폴더 삭제 성공:', result);
 
-        // 전역 상태 업데이트 (콜백)
-        updateFolders(updatedFolders);
+        // 전역 상태에서 폴더 삭제
+        deleteFolder(id);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error';
         setError(errorMessage);
-        console.error('Delete folder error:', err);
+        console.error('❌ 폴더 삭제 오류:', err);
+        alert(`폴더 삭제 중 오류가 발생했습니다: ${errorMessage}`);
       } finally {
         setLoading(false);
       }
     },
-    [folders, updateFolders],
+    [deleteFolder],
   );
 
   // 문서 수정 함수 (독립 구현)
@@ -202,13 +244,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
         const updatedDocument = await response.json();
 
-        // 로컬 상태 업데이트
+        // 전역 상태 업데이트
         const updatedDocuments = documents.map((doc) =>
           doc._id === id ? updatedDocument : doc,
         );
-        setDocuments(updatedDocuments);
-
-        // 전역 상태 업데이트 (콜백)
         updateDocuments(updatedDocuments);
       } catch (err) {
         const errorMessage =
@@ -241,13 +280,10 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
         const updatedFolder = await response.json();
 
-        // 로컬 상태 업데이트
+        // 전역 상태 업데이트
         const updatedFolders = folders.map((folder) =>
           folder._id === id ? updatedFolder : folder,
         );
-        setFolders(updatedFolders);
-
-        // 전역 상태 업데이트 (콜백)
         updateFolders(updatedFolders);
       } catch (err) {
         const errorMessage =
@@ -264,6 +300,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const contextValue = {
     documents,
     folders,
+    user,
     loading,
     error,
     문서를_만든다,

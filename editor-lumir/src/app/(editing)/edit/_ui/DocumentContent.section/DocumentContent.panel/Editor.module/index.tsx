@@ -38,11 +38,19 @@ export default function EditorModule() {
 
   const handleContentChange = useCallback(
     (content: unknown) => {
+      console.log('Content change detected:', {
+        hasCurrentDocument: !!currentDocument,
+        documentId: currentDocument?._id,
+        contentIsArray: Array.isArray(content),
+        contentLength: Array.isArray(content) ? content.length : 0,
+      });
+
       if (currentDocument?._id && Array.isArray(content)) {
         const currentContentString = JSON.stringify(content);
 
         // 이전에 저장된 content와 동일한지 확인
         if (lastSavedContentRef.current === currentContentString) {
+          console.log('Content unchanged, skipping save');
           return;
         }
 
@@ -53,10 +61,21 @@ export default function EditorModule() {
 
         // 디바운싱: 0.5초 후에 저장 실행
         saveTimerRef.current = setTimeout(async () => {
-          await 문서를_저장_한다(currentDocument._id, content);
-          // 저장된 content 기록
-          lastSavedContentRef.current = currentContentString;
+          try {
+            console.log('Saving document content...');
+            await 문서를_저장_한다(currentDocument._id, content);
+            // 저장된 content 기록
+            lastSavedContentRef.current = currentContentString;
+            console.log('Document saved successfully');
+          } catch (error) {
+            console.error('Failed to save document:', error);
+          }
         }, 500);
+      } else {
+        console.warn('Cannot save: missing document ID or invalid content', {
+          hasDocumentId: !!currentDocument?._id,
+          contentIsArray: Array.isArray(content),
+        });
       }
     },
     [currentDocument?._id, 문서를_저장_한다],

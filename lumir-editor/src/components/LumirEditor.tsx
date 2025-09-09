@@ -101,7 +101,7 @@ const fileToBase64 = async (file: File): Promise<string> =>
   await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = reject;
+    reader.onerror = () => reject(new Error('FileReader failed'));
     reader.readAsDataURL(file);
   });
 
@@ -192,17 +192,20 @@ export default function LumirEditor({
       trailingBlock,
       resolveFileUrl,
       uploadFile: async (file) => {
-        const useFallback = !uploadFile;
-        const fallbackUploader = storeImagesAsBase64
+        const custom = uploadFile;
+        const fallback = storeImagesAsBase64
           ? fileToBase64
           : createObjectUrlUploader;
         try {
-          const url = useFallback
-            ? await fallbackUploader(file)
-            : await uploadFile!(file);
-          return url;
-        } catch (e) {
-          throw e;
+          if (custom) return await custom(file);
+          return await fallback(file);
+        } catch (_) {
+          // Fallback to ObjectURL when FileReader or custom upload fails
+          try {
+            return await createObjectUrlUploader(file);
+          } catch {
+            throw new Error('Failed to process file for upload');
+          }
         }
       },
       pasteHandler: (ctx) => {
@@ -212,9 +215,16 @@ export default function LumirEditor({
         const files: File[] = fileList ? Array.from(fileList) : [];
         const accepted: File[] = files.filter(
           (f: File) =>
-            f.type?.startsWith('image/') ||
-            (!f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || '')),
+            f.size > 0 &&
+            (f.type?.startsWith('image/') ||
+              (!f.type &&
+                /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ''))),
         );
+        // 파일 항목이 있으나 허용되지 않으면 기본 처리도 막고 무시
+        if (files.length > 0 && accepted.length === 0) {
+          event.preventDefault();
+          return true;
+        }
         if (accepted.length === 0) return defaultPasteHandler() ?? false;
         event.preventDefault();
         (async () => {
@@ -225,7 +235,16 @@ export default function LumirEditor({
             try {
               const url = await doUpload(file);
               editor.pasteHTML(`<img src="${url}" alt="image" />`);
-            } catch {}
+            } catch (err) {
+              // 업로드 실패 파일은 삽입하지 않음 (삭제/스킵)
+              // console.warn로만 기록하여 UI 오류를 막음
+              console.warn(
+                'Image upload failed, skipped:',
+                file.name || '',
+                err,
+              );
+              continue;
+            }
           }
         })();
         return true;
@@ -311,8 +330,17 @@ export default function LumirEditor({
     };
 
     const handleDrop = (e: DragEvent) => {
-      if (e.defaultPrevented) return;
       if (!e.dataTransfer) return;
+      const hasFiles = (
+        (e.dataTransfer.types as unknown as string[] | undefined) ?? []
+      ).includes('Files');
+      if (!hasFiles) return;
+
+      // 기본 드롭 동작을 항상 차단해, 허용되지 않는 파일이 렌더링되지 않도록 함
+      e.preventDefault();
+      e.stopPropagation();
+      // @ts-ignore
+      (e as any).stopImmediatePropagation?.();
 
       // DataTransferItem 우선 (디렉토리/가짜 항목 배제)
       const items = Array.from(e.dataTransfer.items ?? []);
@@ -323,15 +351,11 @@ export default function LumirEditor({
 
       const accepted = files.filter(
         (f) =>
-          f.type?.startsWith('image/') ||
-          (!f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || '')),
+          f.size > 0 &&
+          (f.type?.startsWith('image/') ||
+            (!f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ''))),
       );
-      if (accepted.length === 0) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-      // @ts-ignore
-      (e as any).stopImmediatePropagation?.();
+      if (accepted.length === 0) return; // 차단만 하고 아무것도 삽입하지 않음
 
       (async () => {
         const doUpload =
@@ -341,7 +365,11 @@ export default function LumirEditor({
           try {
             const url = await doUpload(f);
             editor?.pasteHTML(`<img src="${url}" alt="image" />`);
-          } catch {}
+          } catch (err) {
+            // 실패 파일은 삽입하지 않음
+            console.warn('Image upload failed, skipped:', f.name || '', err);
+            continue;
+          }
         }
       })();
     };

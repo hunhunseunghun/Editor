@@ -1,6 +1,3 @@
-// Layout components
-export * from './layout';
-
 // Editor components
 export * from './editor';
 

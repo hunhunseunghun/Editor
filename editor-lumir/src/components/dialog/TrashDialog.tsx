@@ -104,8 +104,11 @@ export default function TrashDialog({ children }: TrashDialogProps) {
           setFilteredFolders(folders);
         }
       } else {
-        console.error('휴지통 폴더 조회 실패:', response.statusText);
-        alert('휴지통 폴더를 불러오는 중 오류가 발생했습니다.');
+        const errorData = await response.text();
+        console.error('휴지통 폴더 조회 실패:', response.statusText, errorData);
+        alert(
+          `휴지통 폴더를 불러오는 중 오류가 발생했습니다: ${response.statusText}`,
+        );
       }
     } catch (error) {
       console.error('휴지통 폴더 조회 에러:', error);
