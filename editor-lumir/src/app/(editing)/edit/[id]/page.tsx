@@ -11,11 +11,11 @@ export default function DocumentEditPage() {
   const { mountEditPage, loading, error, refetch } = useEdit();
   const { 문서를_조회_한다, currentDocument } = useDocumentContent();
   const params = useParams();
-  
+
   // 하드코딩된 문서 ID (개발용)
   const FIXED_DOCUMENT_ID = '68bfcf76345a021f12b1e69c';
   const documentId = FIXED_DOCUMENT_ID; // URL 파라미터 대신 고정 ID 사용
-  
+
   console.log('🔒 하드코딩된 문서 ID 사용:', FIXED_DOCUMENT_ID);
 
   // 로컬 초기화 상태 (문서 조회를 위한 것)
