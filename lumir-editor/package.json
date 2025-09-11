@@ -1,6 +1,6 @@
 {
   "name": "@lumir-company/editor",
-  "version": "0.0.1",
+  "version": "0.2.1",
   "private": false,
   "description": "Image-only BlockNote based rich text editor with Base64 conversion and theme support",
   "keywords": [
