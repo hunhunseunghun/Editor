@@ -22,13 +22,6 @@ interface LumirEditorProps {
     allowVideoUpload?: boolean;
     allowAudioUpload?: boolean;
     allowFileUpload?: boolean;
-    pasteHandler?: (ctx: {
-        event: ClipboardEvent;
-        editor: EditorType;
-        defaultPasteHandler: (context?: {
-            pasteBehavior?: "prefer-markdown" | "prefer-html";
-        }) => boolean | undefined;
-    }) => boolean | undefined;
     tables?: {
         splitCells?: boolean;
         cellBackgroundColor?: boolean;
@@ -41,12 +34,11 @@ interface LumirEditorProps {
     animations?: boolean;
     defaultStyles?: boolean;
     disableExtensions?: string[];
-    domAttributes?: Record<string, string>;
-    tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
+    tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
     trailingBlock?: boolean;
     resolveFileUrl?: (url: string) => Promise<string>;
     editable?: boolean;
-    theme?: "light" | "dark" | Partial<Record<string, unknown>> | {
+    theme?: 'light' | 'dark' | Partial<Record<string, unknown>> | {
         light: Partial<Record<string, unknown>>;
         dark: Partial<Record<string, unknown>>;
     };
@@ -57,13 +49,10 @@ interface LumirEditorProps {
     emojiPicker?: boolean;
     filePanel?: boolean;
     tableHandles?: boolean;
-    comments?: boolean;
     onSelectionChange?: () => void;
     className?: string;
-    includeDefaultStyles?: boolean;
     sideMenuAddButton?: boolean;
     onContentChange?: (content: DefaultPartialBlock[]) => void;
-    editorRef?: React.MutableRefObject<EditorType | null>;
 }
 
 /**
@@ -92,14 +81,12 @@ declare class ContentUtils {
      * 콘텐츠 유효성 검증 및 기본값 설정
      * @param content 사용자 제공 콘텐츠 (객체 배열 또는 JSON 문자열)
      * @param emptyBlockCount 빈 블록 개수 (기본값: 3)
-     * @param placeholder 첫 번째 블록의 placeholder 텍스트
      * @returns 검증된 콘텐츠 배열
      */
-    static validateContent(content?: DefaultPartialBlock[] | string, emptyBlockCount?: number, placeholder?: string): DefaultPartialBlock[];
+    static validateContent(content?: DefaultPartialBlock[] | string, emptyBlockCount?: number): DefaultPartialBlock[];
     /**
      * 빈 블록들을 생성합니다
      * @param emptyBlockCount 생성할 블록 개수
-     * @param placeholder 첫 번째 블록의 placeholder 텍스트
      * @returns 생성된 빈 블록 배열
      */
     private static createEmptyBlocks;
@@ -114,7 +101,7 @@ declare class EditorConfig {
      * @param userTables 사용자 테이블 설정
      * @returns 기본값이 적용된 테이블 설정
      */
-    static getDefaultTableConfig(userTables?: LumirEditorProps["tables"]): {
+    static getDefaultTableConfig(userTables?: LumirEditorProps['tables']): {
         splitCells: boolean;
         cellBackgroundColor: boolean;
         cellTextColor: boolean;
@@ -125,7 +112,7 @@ declare class EditorConfig {
      * @param userHeading 사용자 헤딩 설정
      * @returns 기본값이 적용된 헤딩 설정
      */
-    static getDefaultHeadingConfig(userHeading?: LumirEditorProps["heading"]): {
+    static getDefaultHeadingConfig(userHeading?: LumirEditorProps['heading']): {
         levels?: (1 | 2 | 3 | 4 | 5 | 6)[];
     };
     /**
@@ -133,11 +120,12 @@ declare class EditorConfig {
      * @param userExtensions 사용자 정의 비활성 확장
      * @param allowVideo 비디오 업로드 허용 여부
      * @param allowAudio 오디오 업로드 허용 여부
+     * @param allowFile 일반 파일 업로드 허용 여부
      * @returns 비활성화할 확장 기능 목록
      */
-    static getDisabledExtensions(userExtensions?: string[], allowVideo?: boolean, allowAudio?: boolean): string[];
+    static getDisabledExtensions(userExtensions?: string[], allowVideo?: boolean, allowAudio?: boolean, allowFile?: boolean): string[];
 }
-declare function LumirEditor({ initialContent, initialEmptyBlocks, placeholder, uploadFile, pasteHandler, tables, heading, animations, defaultStyles, disableExtensions, domAttributes, tabBehavior, trailingBlock, resolveFileUrl, storeImagesAsBase64, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, slashMenu, emojiPicker, filePanel, tableHandles, comments, onSelectionChange, className, includeDefaultStyles, sideMenuAddButton, onContentChange, editorRef, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
+declare function LumirEditor({ initialContent, initialEmptyBlocks, uploadFile, tables, heading, animations, defaultStyles, disableExtensions, tabBehavior, trailingBlock, resolveFileUrl, storeImagesAsBase64, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, slashMenu, emojiPicker, filePanel, tableHandles, onSelectionChange, className, sideMenuAddButton, onContentChange, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
 
 declare function cn(...inputs: (string | undefined | null | false)[]): string;
 

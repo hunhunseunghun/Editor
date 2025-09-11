@@ -4,7 +4,7 @@ import type {
   DefaultBlockSchema,
   DefaultInlineContentSchema,
   DefaultStyleSchema,
-} from "@blocknote/core";
+} from '@blocknote/core';
 
 /**
  * LumirEditor에서 사용하는 BlockNote 에디터 타입
@@ -40,13 +40,6 @@ export interface LumirEditorProps {
   allowAudioUpload?: boolean;
   // 일반 파일 업로드 허용 (기본 비활성)
   allowFileUpload?: boolean;
-  pasteHandler?: (ctx: {
-    event: ClipboardEvent;
-    editor: EditorType;
-    defaultPasteHandler: (context?: {
-      pasteBehavior?: "prefer-markdown" | "prefer-html";
-    }) => boolean | undefined;
-  }) => boolean | undefined;
   tables?: {
     splitCells?: boolean;
     cellBackgroundColor?: boolean;
@@ -57,16 +50,15 @@ export interface LumirEditorProps {
   animations?: boolean;
   defaultStyles?: boolean;
   disableExtensions?: string[];
-  domAttributes?: Record<string, string>;
-  tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
+  tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
   trailingBlock?: boolean;
   resolveFileUrl?: (url: string) => Promise<string>;
 
   // View options
   editable?: boolean;
   theme?:
-    | "light"
-    | "dark"
+    | 'light'
+    | 'dark'
     | Partial<Record<string, unknown>>
     | {
         light: Partial<Record<string, unknown>>;
@@ -79,14 +71,11 @@ export interface LumirEditorProps {
   emojiPicker?: boolean;
   filePanel?: boolean;
   tableHandles?: boolean;
-  comments?: boolean;
   onSelectionChange?: () => void;
   className?: string;
-  includeDefaultStyles?: boolean; // 기본 스타일 포함 여부
-  // Add block(플러스) 버튼 토글: true(기본) = 표시, false = 숨김(드래그 핸들은 유지)
+  // Add block(플러스) 버튼 토글: true = 표시, false(기본) = 숨김(드래그 핸들은 유지)
   sideMenuAddButton?: boolean;
 
   // Callbacks / refs
   onContentChange?: (content: DefaultPartialBlock[]) => void;
-  editorRef?: React.MutableRefObject<EditorType | null>;
 }

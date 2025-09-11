@@ -90,39 +90,34 @@ var ContentUtils = class {
    * 콘텐츠 유효성 검증 및 기본값 설정
    * @param content 사용자 제공 콘텐츠 (객체 배열 또는 JSON 문자열)
    * @param emptyBlockCount 빈 블록 개수 (기본값: 3)
-   * @param placeholder 첫 번째 블록의 placeholder 텍스트
    * @returns 검증된 콘텐츠 배열
    */
-  static validateContent(content, emptyBlockCount = 3, placeholder) {
+  static validateContent(content, emptyBlockCount = 3) {
     if (typeof content === "string") {
       if (content.trim() === "") {
-        return this.createEmptyBlocks(emptyBlockCount, placeholder);
+        return this.createEmptyBlocks(emptyBlockCount);
       }
       const parsedContent = this.parseJSONContent(content);
       if (parsedContent && parsedContent.length > 0) {
         return parsedContent;
       }
-      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+      return this.createEmptyBlocks(emptyBlockCount);
     }
     if (!content || content.length === 0) {
-      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+      return this.createEmptyBlocks(emptyBlockCount);
     }
     return content;
   }
   /**
    * 빈 블록들을 생성합니다
    * @param emptyBlockCount 생성할 블록 개수
-   * @param placeholder 첫 번째 블록의 placeholder 텍스트
    * @returns 생성된 빈 블록 배열
    */
-  static createEmptyBlocks(emptyBlockCount, placeholder) {
-    return Array.from({ length: emptyBlockCount }, (_, index) => {
-      const block = this.createDefaultBlock();
-      if (index === 0 && placeholder) {
-        block.content = [{ type: "text", text: placeholder, styles: {} }];
-      }
-      return block;
-    });
+  static createEmptyBlocks(emptyBlockCount) {
+    return Array.from(
+      { length: emptyBlockCount },
+      () => this.createDefaultBlock()
+    );
   }
 };
 var EditorConfig = class {
@@ -152,17 +147,22 @@ var EditorConfig = class {
    * @param userExtensions 사용자 정의 비활성 확장
    * @param allowVideo 비디오 업로드 허용 여부
    * @param allowAudio 오디오 업로드 허용 여부
+   * @param allowFile 일반 파일 업로드 허용 여부
    * @returns 비활성화할 확장 기능 목록
    */
-  static getDisabledExtensions(userExtensions, allowVideo = false, allowAudio = false) {
+  static getDisabledExtensions(userExtensions, allowVideo = false, allowAudio = false, allowFile = false) {
     const set = new Set(userExtensions ?? []);
     if (!allowVideo) set.add("video");
     if (!allowAudio) set.add("audio");
+    if (!allowFile) set.add("file");
     return Array.from(set);
   }
 };
 var createObjectUrlUploader = async (file) => {
   return URL.createObjectURL(file);
+};
+var isImageFile = (file) => {
+  return file.size > 0 && (file.type?.startsWith("image/") || !file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || ""));
 };
 var fileToBase64 = async (file) => await new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -174,15 +174,12 @@ function LumirEditor({
   // editor options
   initialContent,
   initialEmptyBlocks = 3,
-  placeholder,
   uploadFile,
-  pasteHandler,
   tables,
   heading,
   animations = true,
   defaultStyles = true,
   disableExtensions,
-  domAttributes,
   tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
   resolveFileUrl,
@@ -200,42 +197,50 @@ function LumirEditor({
   emojiPicker = true,
   filePanel = true,
   tableHandles = true,
-  comments = true,
   onSelectionChange,
   className = "",
-  includeDefaultStyles = true,
-  sideMenuAddButton = true,
+  sideMenuAddButton = false,
   // callbacks / refs
-  onContentChange,
-  editorRef
+  onContentChange
 }) {
   const validatedContent = (0, import_react.useMemo)(() => {
-    return ContentUtils.validateContent(
-      initialContent,
-      initialEmptyBlocks,
-      placeholder
+    return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
+  }, [initialContent, initialEmptyBlocks]);
+  const tableConfig = (0, import_react.useMemo)(() => {
+    return EditorConfig.getDefaultTableConfig(tables);
+  }, [
+    tables?.splitCells,
+    tables?.cellBackgroundColor,
+    tables?.cellTextColor,
+    tables?.headers
+  ]);
+  const headingConfig = (0, import_react.useMemo)(() => {
+    return EditorConfig.getDefaultHeadingConfig(heading);
+  }, [heading?.levels?.join(",") ?? ""]);
+  const disabledExtensions = (0, import_react.useMemo)(() => {
+    return EditorConfig.getDisabledExtensions(
+      disableExtensions,
+      allowVideoUpload,
+      allowAudioUpload,
+      allowFileUpload
     );
-  }, [initialContent, initialEmptyBlocks, placeholder]);
+  }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
       initialContent: validatedContent,
-      tables: EditorConfig.getDefaultTableConfig(tables),
-      heading: EditorConfig.getDefaultHeadingConfig(heading),
+      tables: tableConfig,
+      heading: headingConfig,
       animations,
       defaultStyles,
-      // 확장 비활성: 비디오/오디오만 제어(파일 확장은 내부 드롭 로직 의존 → 비활성화하지 않음)
-      disableExtensions: (0, import_react.useMemo)(() => {
-        return EditorConfig.getDisabledExtensions(
-          disableExtensions,
-          allowVideoUpload,
-          allowAudioUpload
-        );
-      }, [disableExtensions, allowVideoUpload, allowAudioUpload]),
-      domAttributes,
+      // 확장 비활성: 비디오/오디오/파일 제어
+      disableExtensions: disabledExtensions,
       tabBehavior,
       trailingBlock,
       resolveFileUrl,
       uploadFile: async (file) => {
+        if (!isImageFile(file)) {
+          throw new Error("Only image files are allowed");
+        }
         const custom = uploadFile;
         const fallback = storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader;
         try {
@@ -253,20 +258,19 @@ function LumirEditor({
         const { event, editor: editor2, defaultPasteHandler } = ctx;
         const fileList = event?.clipboardData?.files ?? null;
         const files = fileList ? Array.from(fileList) : [];
-        const accepted = files.filter(
-          (f) => f.size > 0 && (f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ""))
-        );
-        if (files.length > 0 && accepted.length === 0) {
+        const acceptedFiles = files.filter(isImageFile);
+        if (files.length > 0 && acceptedFiles.length === 0) {
           event.preventDefault();
           return true;
         }
-        if (accepted.length === 0) return defaultPasteHandler() ?? false;
+        if (acceptedFiles.length === 0) {
+          return defaultPasteHandler() ?? false;
+        }
         event.preventDefault();
         (async () => {
-          const doUpload = uploadFile ?? (storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader);
-          for (const file of accepted) {
+          for (const file of acceptedFiles) {
             try {
-              const url = await doUpload(file);
+              const url = await editor2.uploadFile(file);
               editor2.pasteHTML(`<img src="${url}" alt="image" />`);
             } catch (err) {
               console.warn(
@@ -274,7 +278,6 @@ function LumirEditor({
                 file.name || "",
                 err
               );
-              continue;
             }
           }
         })();
@@ -282,58 +285,32 @@ function LumirEditor({
       }
     },
     [
-      uploadFile,
-      pasteHandler,
-      storeImagesAsBase64,
-      allowVideoUpload,
-      allowAudioUpload,
-      allowFileUpload,
-      tables?.splitCells,
-      tables?.cellBackgroundColor,
-      tables?.cellTextColor,
-      tables?.headers,
-      heading?.levels?.join(","),
+      validatedContent,
+      tableConfig,
+      headingConfig,
       animations,
       defaultStyles,
-      disableExtensions?.join(","),
-      domAttributes ? JSON.stringify(domAttributes) : void 0,
+      disabledExtensions,
       tabBehavior,
       trailingBlock,
-      resolveFileUrl
+      resolveFileUrl,
+      uploadFile,
+      storeImagesAsBase64
     ]
   );
   (0, import_react.useEffect)(() => {
-    if (!editor) return;
-    editor.isEditable = editable;
-    const el = editor.domElement;
-    if (!editable) {
-      if (el) {
-        el.style.userSelect = "text";
-        el.style.webkitUserSelect = "text";
-      }
+    if (editor) {
+      editor.isEditable = editable;
     }
   }, [editor, editable]);
   (0, import_react.useEffect)(() => {
     if (!editor || !onContentChange) return;
-    let lastContent = "";
     const handleContentChange = () => {
-      const topLevelBlocks = editor.topLevelBlocks;
-      const currentContent = JSON.stringify(topLevelBlocks);
-      if (lastContent === currentContent) return;
-      lastContent = currentContent;
-      onContentChange(topLevelBlocks);
+      const blocks = editor.topLevelBlocks;
+      onContentChange(blocks);
     };
-    editor.onEditorContentChange(handleContentChange);
-    return () => {
-    };
+    return editor.onEditorContentChange(handleContentChange);
   }, [editor, onContentChange]);
-  (0, import_react.useEffect)(() => {
-    if (!editorRef) return;
-    editorRef.current = editor ?? null;
-    return () => {
-      if (editorRef) editorRef.current = null;
-    };
-  }, [editor, editorRef]);
   (0, import_react.useEffect)(() => {
     const el = editor?.domElement;
     if (!el) return;
@@ -343,9 +320,6 @@ function LumirEditor({
       if (hasFiles) {
         e.preventDefault();
         e.stopPropagation();
-        if (typeof e.stopImmediatePropagation === "function") {
-          e.stopImmediatePropagation();
-        }
       }
     };
     const handleDrop = (e) => {
@@ -354,22 +328,21 @@ function LumirEditor({
       if (!hasFiles) return;
       e.preventDefault();
       e.stopPropagation();
-      e.stopImmediatePropagation?.();
       const items = Array.from(e.dataTransfer.items ?? []);
       const files = items.filter((it) => it.kind === "file").map((it) => it.getAsFile()).filter((f) => !!f);
-      const accepted = files.filter(
-        (f) => f.size > 0 && (f.type?.startsWith("image/") || !f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ""))
-      );
-      if (accepted.length === 0) return;
+      const acceptedFiles = files.filter(isImageFile);
+      if (acceptedFiles.length === 0) return;
       (async () => {
-        const doUpload = uploadFile ?? (storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader);
-        for (const f of accepted) {
+        for (const file of acceptedFiles) {
           try {
-            const url = await doUpload(f);
-            editor?.pasteHTML(`<img src="${url}" alt="image" />`);
+            if (editor?.uploadFile) {
+              const url = await editor.uploadFile(file);
+              if (url) {
+                editor.pasteHTML(`<img src="${url}" alt="image" />`);
+              }
+            }
           } catch (err) {
-            console.warn("Image upload failed, skipped:", f.name || "", err);
-            continue;
+            console.warn("Image upload failed, skipped:", file.name || "", err);
           }
         }
       })();
@@ -382,24 +355,16 @@ function LumirEditor({
       });
       el.removeEventListener("drop", handleDrop, { capture: true });
     };
-  }, [
-    editor,
-    uploadFile,
-    storeImagesAsBase64,
-    allowVideoUpload,
-    allowAudioUpload
-  ]);
-  const computedSideMenu = sideMenuAddButton ? sideMenu : false;
-  const DragHandleOnlySideMenu = (props) => {
-    return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenu, { ...props, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.DragHandleButton, { ...props }) });
-  };
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+  }, [editor]);
+  const computedSideMenu = (0, import_react.useMemo)(() => {
+    return sideMenuAddButton ? sideMenu : false;
+  }, [sideMenuAddButton, sideMenu]);
+  const DragHandleOnlySideMenu = (0, import_react.useMemo)(() => {
+    return (props) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenu, { ...props, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.DragHandleButton, { ...props }) });
+  }, []);
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: cn("lumirEditor", className), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
     import_mantine.BlockNoteView,
     {
-      className: cn(
-        includeDefaultStyles && 'lumirEditor w-full h-full min-w-[300px] overflow-auto rounded-md border border-gray-300 focus-within:ring-2 focus-within:ring-black [&_.bn-editor]:px-[12px] [&_[data-content-type="paragraph"]]:text-[14px] bg-white',
-        className
-      ),
       editor,
       editable,
       theme,
@@ -410,34 +375,39 @@ function LumirEditor({
       emojiPicker,
       filePanel,
       tableHandles,
-      comments,
       onSelectionChange,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+        slashMenu && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
           import_react2.SuggestionMenuController,
           {
             triggerCharacter: "/",
-            getItems: async (query) => {
-              const items = (0, import_react2.getDefaultReactSlashMenuItems)(editor);
-              const filtered = items.filter((it) => {
-                const k = (it?.key || "").toString();
-                if (["video", "audio", "file"].includes(k)) return false;
-                return true;
-              });
-              if (!query) return filtered;
-              const q = query.toLowerCase();
-              return filtered.filter(
-                (it) => (it.title || "").toLowerCase().includes(q) || (it.aliases || []).some(
-                  (a) => a.toLowerCase().includes(q)
-                )
-              );
-            }
+            getItems: (0, import_react.useCallback)(
+              async (query) => {
+                const items = (0, import_react2.getDefaultReactSlashMenuItems)(editor);
+                const filtered = items.filter((item) => {
+                  const key = (item?.key || "").toString().toLowerCase();
+                  const title = (item?.title || "").toString().toLowerCase();
+                  if (["video", "audio", "file"].includes(key)) return false;
+                  if (title.includes("video") || title.includes("audio") || title.includes("file"))
+                    return false;
+                  return true;
+                });
+                if (!query) return filtered;
+                const q = query.toLowerCase();
+                return filtered.filter(
+                  (item) => item.title?.toLowerCase().includes(q) || (item.aliases || []).some(
+                    (a) => a.toLowerCase().includes(q)
+                  )
+                );
+              },
+              [editor]
+            )
           }
         ),
         !sideMenuAddButton && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenuController, { sideMenu: DragHandleOnlySideMenu })
       ]
     }
-  );
+  ) });
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

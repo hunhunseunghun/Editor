@@ -2,17 +2,13 @@
 @import 'tailwindcss';
 
 /* Lumir Editor styles */
-@import '@blocknote/mantine/style.css';
-@import '@blocknote/react/style.css';
+@import '@lumir-company/editor/style.css';
 
-/* BlockNote/Mantine 기본 폰트를 덮어씀 */
-.lumirEditor {
-  --mantine-font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica,
-    sans-serif;
-}
-.lumirEditor .bn-editor,
-.lumirEditor .bn-inline-content {
-  font-family: 'Pretendard', 'Noto Sans KR', Arial, Helvetica, sans-serif !important;
+@media (min-width: 768px) {
+  .responsive-editor .bn-editor {
+    padding-left: 40px;
+    padding-right: 20px;
+  }
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -145,86 +141,4 @@
       'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic',
       'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
   }
-}
-
-@layer utilities {
-  /* 🔥 DND 시스템 격리 최적화 */
-  [data-sidebar-container] {
-    /* React Arborist DND 영역 */
-    position: relative;
-    z-index: 50;
-    isolation: isolate;
-  }
-
-  [data-editor-container] {
-    /* BlockNote DND 영역 */
-    position: relative;
-    z-index: 1;
-    isolation: isolate;
-  }
-
-  /* React Arborist DND 최적화 */
-  [data-sidebar-container] .react-arborist-tree * {
-    /* React Arborist DND 이벤트가 BlockNote 영역으로 번지지 않도록 */
-    pointer-events: auto;
-  }
-
-  /* BlockNote DND 최적화 */
-  [data-editor-container] .bn-container {
-    /* BlockNote DND 이벤트가 React Arborist 영역으로 번지지 않도록 */
-    position: relative;
-    z-index: 2;
-    isolation: isolate;
-  }
-
-  /* 드래그 프리뷰 위치 보정 */
-  .react-arborist-drag-preview {
-    position: fixed !important;
-    z-index: 9999 !important;
-    pointer-events: none !important;
-    transform-origin: top left !important;
-  }
-
-  /* 🔥 에디터 영역에서 React Arborist 커서 완전 차단 */
-  [data-editor-container] * {
-    position: relative;
-    z-index: 10;
-  }
-
-  /* React Arborist 커서가 에디터 영역에 표시되지 않도록 강제 격리 */
-  [data-editor-container]::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 5;
-    pointer-events: none;
-    background: transparent;
-  }
-
-  /* 🔥 에디터 영역의 모든 드롭 인디케이터 완전히 숨김 */
-  [data-editor-container] [style*='height: 4px'],
-  [data-editor-container] [style*='background-color: rgb(59, 130, 246)'],
-  [data-editor-container] [style*='background-color: #3b82f6'] {
-    opacity: 0 !important;
-    visibility: hidden !important;
-    display: none !important;
-  }
-
-  /* 🔥 사이드바 드롭존 표시 활성화 */
-  [data-sidebar-container] .react-arborist-tree {
-    position: relative;
-    z-index: 1;
-  }
-
-  /* 사이드바 내부의 드롭 인디케이터는 허용 (더 연한 색상) */
-  [data-sidebar-container] [style*='position: absolute'][style*='height: 4px'] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 0.6 !important; /* 🔥 더 연하게 변경 */
-  }
-
-  /* 🔥 Tailwind CSS로 드롭존 스타일링 처리됨 - CSS 규칙 제거 */
 }
