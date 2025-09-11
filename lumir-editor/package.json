@@ -1,18 +1,19 @@
 {
   "name": "@lumir-company/editor",
-  "version": "0.2.0",
+  "version": "0.0.1",
   "private": false,
-  "description": "Advanced BlockNote-based React rich text editor with hybrid content support and flexible styling",
+  "description": "Image-only BlockNote based rich text editor with Base64 conversion and theme support",
   "keywords": [
     "editor",
     "blocknote",
     "rich-text",
     "react",
     "typescript",
-    "tailwind",
+    "image-editor",
     "wysiwyg",
-    "markdown",
-    "text-editor"
+    "base64",
+    "theme",
+    "pretendard"
   ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
