@@ -1,14 +1,18 @@
 {
-  "name": "@kingdoo/editor",
-  "version": "0.1.15",
+  "name": "@lumir-company/editor",
+  "version": "0.2.0",
   "private": false,
-  "description": "Lumir BlockNote-based React editor component (library scaffolding, no publish)",
+  "description": "Advanced BlockNote-based React rich text editor with hybrid content support and flexible styling",
   "keywords": [
     "editor",
     "blocknote",
     "rich-text",
     "react",
-    "lumir"
+    "typescript",
+    "tailwind",
+    "wysiwyg",
+    "markdown",
+    "text-editor"
   ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -18,11 +22,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/your-org/your-repo.git"
+    "url": "git+https://github.com/lumir-company/editor.git"
   },
-  "homepage": "https://github.com/your-org/your-repo#readme",
+  "homepage": "https://github.com/lumir-company/editor#readme",
   "bugs": {
-    "url": "https://github.com/your-org/your-repo/issues"
+    "url": "https://github.com/lumir-company/editor/issues"
   },
   "exports": {
     ".": {

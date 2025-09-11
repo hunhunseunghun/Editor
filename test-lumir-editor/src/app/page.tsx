@@ -9,7 +9,7 @@ export default function Home() {
   return (
     <div className='h-screen bg-stone-50 dark:bg-stone-900 flex overflow-hidden'>
       {/* 사이드바 - 고정 너비 */}
-      <div className='w-60 flex-shrink-0 border-r border-stone-200 dark:border-stone-700'>
+      <div className='w-55 flex-shrink-0 border-r border-stone-200 dark:border-stone-700'>
         <Sidebar />
       </div>
 

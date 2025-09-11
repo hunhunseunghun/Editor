@@ -1,561 +1,925 @@
-# @kingdoo/editor
+# LumirEditor
 
-BlockNote 기반의 React 리치 텍스트 에디터 컴포넌트
+BlockNote 기반의 고급 Rich Text 에디터 React 컴포넌트
 
-## 주요 특징
+## ✨ 주요 특징
 
-- BlockNote 무료 패키지 의존(@blocknote/core, @blocknote/react, @blocknote/mantine)
-- 이미지 업로드/붙여넣기/드래그앤드롭
-- 표/헤딩 및 기본 UI(포맷팅/링크/사이드/슬래시/이모지/파일 패널)
-- 번들: ESM/CJS + 타입(d.ts)
-- **className prop을 통한 커스텀 스타일링 지원**
-- 사이드 메뉴 토글: Add(+ ) 버튼 On/Off (드래그 핸들은 항상 유지)
+- 🚀 **하이브리드 콘텐츠 지원**: JSON 객체 배열 또는 JSON 문자열 모두 지원
+- 📷 **이미지 처리**: 업로드/붙여넣기/드래그앤드롭 완벽 지원
+- 🎨 **유연한 스타일링**: Tailwind CSS 클래스와 커스텀 CSS 모두 지원
+- 📱 **반응형 UI**: 모든 툴바와 메뉴 개별 제어 가능
+- 🔧 **TypeScript 완벽 지원**: 모든 타입 정의 포함
+- ⚡ **최적화된 성능**: 스마트 렌더링과 메모리 관리
 
-## 사용 방법
+## 📦 설치 및 초기 세팅
 
-### CSS 적용
+### 1. 패키지 설치
 
-- 프록시 한 번에 import
+```bash
+npm install @lumir-company/editor
+# 또는
+yarn add @lumir-company/editor
+# 또는
+pnpm add @lumir-company/editor
+```
+
+### 2. 필수 CSS 임포트
+
+에디터가 제대로 작동하려면 반드시 CSS 파일을 임포트해야 합니다:
+
+```tsx
+// App.tsx 또는 main.tsx에서
+import "@lumir-company/editor/style.css";
+```
+
+**또는 개별 CSS 임포트:**
+
+```tsx
+import "@blocknote/core/fonts/inter.css";
+import "@blocknote/mantine/style.css";
+import "@blocknote/react/style.css";
+```
+
+### 3. TypeScript 설정 (권장)
+
+`tsconfig.json`에서 모듈 해석 설정:
+
+```json
+{
+  "compilerOptions": {
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "es6"]
+  }
+}
+```
+
+### 4. Tailwind CSS 설정 (선택사항)
+
+패키지의 Tailwind 클래스를 사용하려면 `tailwind.config.js`에 추가:
+
+```js
+module.exports = {
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx}", // 기존 경로들
+    "./node_modules/@lumir-company/editor/dist/**/*.js", // 패키지 경로 추가
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
+```
+
+### 5. 번들러별 설정
+
+#### Next.js
+
+```tsx
+// next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@lumir-company/editor"],
+  experimental: {
+    esmExternals: true,
+  },
+};
+
+module.exports = nextConfig;
+```
+
+#### Vite
 
 ```ts
-import '@kingdoo/editor/style.css';
+// vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  optimizeDeps: {
+    include: ["@lumir-company/editor"],
+  },
+});
 ```
 
-- 또는 개별 import
+#### Webpack
 
-```ts
-import '@blocknote/core/fonts/inter.css';
-import '@blocknote/mantine/style.css';
-import '@blocknote/react/style.css';
+```js
+// webpack.config.js
+module.exports = {
+  resolve: {
+    alias: {
+      // BlockNote 관련 폴리필이 필요한 경우
+      crypto: "crypto-browserify",
+      stream: "stream-browserify",
+    },
+  },
+};
 ```
 
-#### className을 통한 스타일 적용
+## 🚀 사용법
 
-`className` prop을 사용하여 에디터에 커스텀 CSS 클래스를 적용할 수 있습니다:
+### 기본 사용법
 
 ```tsx
-<LumirEditor className='my-custom-editor' />
+import { LumirEditor } from "@lumir-company/editor";
+import "@lumir-company/editor/style.css";
+
+export default function App() {
+  return (
+    <LumirEditor
+      initialContent="빈 상태에서 시작"
+      onContentChange={(blocks) => {
+        console.log("변경된 내용:", blocks);
+      }}
+    />
+  );
+}
 ```
 
-Tailwind 임의 변형을 활용하면 특정 자손만 정밀하게 스타일링할 수 있습니다.
+### Next.js에서 사용
 
 ```tsx
-// 문단만 14px, 에디터 가로 패딩 26px
-<LumirEditor
-  className='[&_[data-content-type="paragraph"]]:text-[14px] [&_.bn-editor]:px-[26px]'
-  includeDefaultStyles
-/>
-```
-
-#### CSS에서 스타일 오버라이드
-
-```css
-/* 기본 에디터 스타일 */
-.my-custom-editor .bn-editor {
-  font-size: 14px;
-}
-
-/* paragraph 블록만 특정 크기로 */
-.my-custom-editor .bn-block[data-content-type='paragraph'] {
-  font-size: 12px;
-}
-
-/* 모든 블록을 12px로 설정 */
-.my-custom-editor .bn-block {
-  font-size: 12px;
-}
-```
-
-### Next.js 예시(SSR 비활성)
-
-```tsx
-'use client';
-import dynamic from 'next/dynamic';
+"use client";
+import dynamic from "next/dynamic";
 
 const LumirEditor = dynamic(
-  () => import('@kingdoo/editor').then((m) => m.LumirEditor),
-  { ssr: false },
+  () => import("@lumir-company/editor").then((m) => m.LumirEditor),
+  { ssr: false }
 );
 
-export default function Page() {
+export default function EditorPage() {
   return (
-    <div style={{ width: 800, height: 600 }}>
+    <div className="container mx-auto p-4">
       <LumirEditor
-        initialContent={[]}
-        uploadFile={async (file) => URL.createObjectURL(file)}
-        onContentChange={(blocks) => {
-          console.log('blocks:', blocks.length);
+        initialContent={[
+          {
+            type: "paragraph",
+            content: [{ type: "text", text: "안녕하세요!" }],
+          },
+        ]}
+        onContentChange={(blocks) => saveDocument(blocks)}
+        uploadFile={async (file) => {
+          // 파일 업로드 로직
+          const url = await uploadToServer(file);
+          return url;
         }}
-        theme='light'
-        className='my-editor'
-        formattingToolbar
-        linkToolbar
-        sideMenu
-        slashMenu
-        emojiPicker
-        filePanel
-        tableHandles
-        comments={false}
+        theme="light"
+        className="min-h-[400px] rounded-lg border"
       />
     </div>
   );
 }
 ```
 
-### React 예시(Vite 등)
+### 고급 설정 예시
 
 ```tsx
-import { LumirEditor } from '@kingdoo/editor';
-import '@kingdoo/editor/style.css';
-
-export default function App() {
-  return (
-    <LumirEditor
-      initialContent={[]}
-      uploadFile={async (file) => URL.createObjectURL(file)}
-      className='my-editor'
-    />
-  );
-}
+<LumirEditor
+  // 콘텐츠 설정
+  initialContent='[{"type":"paragraph","content":[{"type":"text","text":"JSON 문자열도 지원"}]}]'
+  placeholder="여기에 내용을 입력하세요..."
+  initialEmptyBlocks={5}
+  // 파일 업로드
+  uploadFile={async (file) => await uploadToS3(file)}
+  storeImagesAsBase64={false}
+  allowVideoUpload={true}
+  allowAudioUpload={true}
+  // UI 커스터마이징
+  theme="dark"
+  formattingToolbar={true}
+  sideMenuAddButton={false} // Add 버튼 숨기고 드래그만
+  className="min-h-[600px] rounded-xl shadow-lg"
+  // 이벤트 핸들러
+  onContentChange={(blocks) => {
+    autoSave(JSON.stringify(blocks));
+  }}
+  onSelectionChange={() => updateToolbar()}
+/>
 ```
 
-## Props 개요
+## 📚 Props API
 
-```ts
-interface LumirEditorProps {
-  // 에디터 옵션
-  initialContent?: PartialBlock[];
-  uploadFile?: (file: File) => Promise<string>;
-  pasteHandler?: (ctx) => boolean | undefined;
-  tables?: {
-    splitCells?: boolean;
-    cellBackgroundColor?: boolean;
-    cellTextColor?: boolean;
-    headers?: boolean;
-  };
-  heading?: { levels?: (1 | 2 | 3 | 4 | 5 | 6)[] };
-  animations?: boolean;
-  defaultStyles?: boolean;
-  disableExtensions?: string[];
-  domAttributes?: Record<string, string>;
-  tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
-  trailingBlock?: boolean;
-  resolveFileUrl?: (url: string) => Promise<string>;
+### 📝 콘텐츠 관련
 
-  // 뷰 옵션
-  editable?: boolean;
-  theme?: 'light' | 'dark' | object;
-  formattingToolbar?: boolean;
-  linkToolbar?: boolean;
-  sideMenu?: boolean;
-  slashMenu?: boolean;
-  emojiPicker?: boolean;
-  filePanel?: boolean;
-  tableHandles?: boolean;
-  comments?: boolean;
-  onSelectionChange?: () => void;
-  className?: string; // ✅ Tailwind/CSS 클래스 적용
-  includeDefaultStyles?: boolean; // ✅ 기본 스타일 포함 여부
-  sideMenuAddButton?: boolean; // ✅ Add 버튼 표시(기본 true). false면 Add 버튼 제거, 드래그 핸들은 유지
+| Prop                 | 타입                                       | 기본값      | 설명                                          |
+| -------------------- | ------------------------------------------ | ----------- | --------------------------------------------- |
+| `initialContent`     | `DefaultPartialBlock[] \| string`          | `undefined` | 초기 콘텐츠 (JSON 객체 배열 또는 JSON 문자열) |
+| `initialEmptyBlocks` | `number`                                   | `3`         | 초기 빈 블록 개수                             |
+| `placeholder`        | `string`                                   | `undefined` | 첫 번째 블록의 placeholder 텍스트             |
+| `onContentChange`    | `(content: DefaultPartialBlock[]) => void` | `undefined` | 콘텐츠 변경 시 호출되는 콜백                  |
 
-  // 콜백
-  onContentChange?: (content: PartialBlock[]) => void;
-  editorRef?: React.MutableRefObject<EditorType | null>;
-}
+#### 사용 예시:
+
+```tsx
+// 1. JSON 객체 배열로 초기 콘텐츠 설정
+const initialBlocks = [
+  {
+    type: "paragraph",
+    props: {
+      textColor: "default",
+      backgroundColor: "default",
+      textAlignment: "left"
+    },
+    content: [{ type: "text", text: "환영합니다!", styles: {} }],
+    children: []
+  }
+];
+
+<LumirEditor initialContent={initialBlocks} />
+
+// 2. JSON 문자열로 설정 (API 응답, 로컬스토리지 등)
+const savedContent = localStorage.getItem('editorContent');
+<LumirEditor initialContent={savedContent} />
+
+// 3. Placeholder와 빈 블록 개수 설정
+<LumirEditor
+  placeholder="제목을 입력하세요..."
+  initialEmptyBlocks={1} // 한 개의 빈 블록만 생성
+/>
+
+// 4. 다양한 초기 상태 조합
+<LumirEditor
+  initialContent="" // 빈 문자열
+  placeholder="새 문서를 작성하세요"
+  initialEmptyBlocks={5} // 5개의 빈 블록 생성
+  onContentChange={(content) => {
+    // 실시간으로 변경사항 감지
+    console.log(`총 ${content.length}개 블록`);
+    autosave(JSON.stringify(content));
+  }}
+/>
 ```
 
-## Export된 타입들
+#### ⚠️ 중요한 사용 팁:
 
-패키지에서 사용할 수 있는 모든 타입들을 import할 수 있습니다:
+- `initialContent`가 있으면 `placeholder`와 `initialEmptyBlocks`는 무시됩니다
+- 콘텐츠 변경 시 `onContentChange`는 항상 `DefaultPartialBlock[]` 타입으로 반환됩니다
+- 빈 문자열이나 잘못된 JSON은 자동으로 빈 블록으로 변환됩니다
 
-### 컴포넌트 타입
+### 📁 파일 및 미디어
 
-```ts
+| Prop                  | 타입                              | 기본값      | 설명                                        |
+| --------------------- | --------------------------------- | ----------- | ------------------------------------------- |
+| `uploadFile`          | `(file: File) => Promise<string>` | `undefined` | 커스텀 파일 업로드 함수                     |
+| `storeImagesAsBase64` | `boolean`                         | `true`      | 폴백 이미지 저장 방식 (Base64 vs ObjectURL) |
+| `allowVideoUpload`    | `boolean`                         | `false`     | 비디오 업로드 허용                          |
+| `allowAudioUpload`    | `boolean`                         | `false`     | 오디오 업로드 허용                          |
+| `allowFileUpload`     | `boolean`                         | `false`     | 일반 파일 업로드 허용                       |
+
+#### 사용 예시:
+
+```tsx
+// 1. 기본 이미지 업로드 (Base64 저장)
+<LumirEditor />  // storeImagesAsBase64={true}가 기본값
+
+// 2. ObjectURL 방식 (브라우저 메모리)
+<LumirEditor storeImagesAsBase64={false} />
+
+// 3. 커스텀 업로드 함수 (S3, Cloudinary 등)
+<LumirEditor
+  uploadFile={async (file) => {
+    // 파일 크기 검증
+    if (file.size > 5 * 1024 * 1024) {
+      throw new Error('파일 크기는 5MB 이하여야 합니다');
+    }
+
+    // FormData로 업로드
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "editor-uploads");
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${userToken}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('업로드 실패');
+    }
+
+    const { url } = await response.json();
+    return url; // 반드시 접근 가능한 public URL 반환
+  }}
+  // 비디오와 오디오도 허용
+  allowVideoUpload={true}
+  allowAudioUpload={true}
+/>
+
+// 4. AWS S3 직접 업로드 예시
+<LumirEditor
+  uploadFile={async (file) => {
+    // 1. Presigned URL 받기
+    const presignedResponse = await fetch('/api/s3/presigned-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+      }),
+    });
+
+    const { uploadUrl, fileUrl } = await presignedResponse.json();
+
+    // 2. S3에 직접 업로드
+    await fetch(uploadUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    // 3. 공개 URL 반환
+    return fileUrl;
+  }}
+/>
+```
+
+#### 🔧 업로드 함수 설계 가이드:
+
+**입력:** `File` 객체
+**출력:** `Promise<string>` (접근 가능한 URL)
+
+```tsx
+// 올바른 예시
+const uploadFile = async (file: File): Promise<string> => {
+  // 업로드 로직...
+  return "https://cdn.example.com/uploads/image.jpg"; // ✅ 공개 URL
+};
+
+// 잘못된 예시
+const uploadFile = async (file: File): Promise<string> => {
+  return "file://local/path.jpg"; // ❌ 로컬 경로
+  return "blob:http://localhost/temp"; // ❌ Blob URL
+};
+```
+
+#### ⚠️ 중요한 업로드 팁:
+
+- `uploadFile`이 없으면 `storeImagesAsBase64` 설정에 따라 Base64 또는 ObjectURL 사용
+- 업로드 실패 시 에러를 던지면 해당 파일은 삽입되지 않음
+- 반환된 URL은 브라우저에서 직접 접근 가능해야 함
+- 대용량 파일은 청크 업로드나 압축을 고려하세요
+
+### 🎛️ 에디터 기능
+
+| Prop                | 타입                                      | 기본값                    | 설명                 |
+| ------------------- | ----------------------------------------- | ------------------------- | -------------------- |
+| `tables`            | `TableConfig`                             | `모두 true`               | 표 기능 설정         |
+| `heading`           | `{levels?: (1\|2\|3\|4\|5\|6)[]}`         | `{levels: [1,2,3,4,5,6]}` | 헤딩 레벨 설정       |
+| `animations`        | `boolean`                                 | `true`                    | 블록 변환 애니메이션 |
+| `defaultStyles`     | `boolean`                                 | `true`                    | 기본 스타일 적용     |
+| `disableExtensions` | `string[]`                                | `[]`                      | 비활성화할 확장 기능 |
+| `tabBehavior`       | `"prefer-navigate-ui" \| "prefer-indent"` | `"prefer-navigate-ui"`    | Tab 키 동작          |
+| `trailingBlock`     | `boolean`                                 | `true`                    | 문서 끝 빈 블록 유지 |
+
+### 🎨 UI 및 테마
+
+| Prop                   | 타입                          | 기본값    | 설명                  |
+| ---------------------- | ----------------------------- | --------- | --------------------- |
+| `theme`                | `"light" \| "dark" \| object` | `"light"` | 에디터 테마           |
+| `editable`             | `boolean`                     | `true`    | 편집 가능 여부        |
+| `className`            | `string`                      | `""`      | 커스텀 CSS 클래스     |
+| `includeDefaultStyles` | `boolean`                     | `true`    | 기본 스타일 포함 여부 |
+
+### 🛠️ 툴바 및 메뉴
+
+| Prop                | 타입      | 기본값 | 설명                      |
+| ------------------- | --------- | ------ | ------------------------- |
+| `formattingToolbar` | `boolean` | `true` | 서식 툴바 표시            |
+| `linkToolbar`       | `boolean` | `true` | 링크 툴바 표시            |
+| `sideMenu`          | `boolean` | `true` | 사이드 메뉴 표시          |
+| `sideMenuAddButton` | `boolean` | `true` | 사이드 메뉴 Add 버튼 표시 |
+| `slashMenu`         | `boolean` | `true` | 슬래시 메뉴 표시          |
+| `emojiPicker`       | `boolean` | `true` | 이모지 피커 표시          |
+| `filePanel`         | `boolean` | `true` | 파일 패널 표시            |
+| `tableHandles`      | `boolean` | `true` | 표 핸들 표시              |
+| `comments`          | `boolean` | `true` | 댓글 기능 표시            |
+
+### 🔗 고급 설정
+
+| Prop                | 타입                                         | 기본값      | 설명                 |
+| ------------------- | -------------------------------------------- | ----------- | -------------------- |
+| `editorRef`         | `React.MutableRefObject<EditorType \| null>` | `undefined` | 에디터 인스턴스 참조 |
+| `domAttributes`     | `Record<string, string>`                     | `{}`        | DOM 속성 추가        |
+| `resolveFileUrl`    | `(url: string) => Promise<string>`           | `undefined` | 파일 URL 변환 함수   |
+| `onSelectionChange` | `() => void`                                 | `undefined` | 선택 영역 변경 콜백  |
+
+## 📖 타입 정의
+
+### 주요 타입 가져오기
+
+```tsx
 import type {
-  LumirEditorProps, // 메인 컴포넌트 props 인터페이스
-  EditorType, // 에디터 인스턴스 타입
-  DefaultPartialBlock, // 기본 블록 타입
-} from '@kingdoo/editor';
-```
-
-### BlockNote 코어 타입
-
-```ts
-import type {
-  DefaultBlockSchema, // 기본 블록 스키마
-  DefaultInlineContentSchema, // 기본 인라인 콘텐츠 스키마
-  DefaultStyleSchema, // 기본 스타일 스키마
-  PartialBlock, // 부분 블록 타입
-  BlockNoteEditor, // 코어 에디터 타입
-} from '@kingdoo/editor';
-```
-
-### 전체 타입 import 예시
-
-```ts
-import {
-  LumirEditor,
-  type LumirEditorProps,
-  type EditorType,
-  type DefaultPartialBlock,
-  type DefaultBlockSchema,
-  type PartialBlock,
-} from '@kingdoo/editor';
+  LumirEditorProps,
+  EditorType,
+  DefaultPartialBlock,
+  DefaultBlockSchema,
+  DefaultInlineContentSchema,
+  DefaultStyleSchema,
+  PartialBlock,
+  BlockNoteEditor,
+} from "@lumir-company/editor";
 ```
 
 ### 타입 사용 예시
 
 ```tsx
-// 에디터 ref 타입 지정
-const editorRef = useRef<EditorType>(null);
+import { useRef } from "react";
+import {
+  LumirEditor,
+  type EditorType,
+  type DefaultPartialBlock,
+} from "@lumir-company/editor";
 
-// 콘텐츠 변경 핸들러 타입 지정
-const handleContentChange = (content: DefaultPartialBlock[]) => {
-  console.log('Content changed:', content);
-};
+function MyEditor() {
+  const editorRef = useRef<EditorType>(null);
 
-// 커스텀 props 타입 정의
-interface CustomEditorProps extends Partial<LumirEditorProps> {
-  customProp?: string;
+  const handleContentChange = (content: DefaultPartialBlock[]) => {
+    console.log("변경된 블록:", content);
+    saveToDatabase(JSON.stringify(content));
+  };
+
+  const insertImage = () => {
+    editorRef.current?.pasteHTML('<img src="/example.jpg" alt="Example" />');
+  };
+
+  return (
+    <div>
+      <button onClick={insertImage}>이미지 삽입</button>
+      <LumirEditor
+        editorRef={editorRef}
+        onContentChange={handleContentChange}
+      />
+    </div>
+  );
 }
 ```
 
-## Props 상세(옵션/기본값/사용법)
+## 🎨 스타일 커스터마이징 완벽 가이드
 
-### 에디터 옵션
+### 1. 기본 스타일 시스템
 
-- initialContent
+LumirEditor는 3가지 스타일링 방법을 제공합니다:
 
-  - 설명: 생성 시 로드할 블록 JSON 배열
-  - 기본값: 빈 문단 1개(내부 기본)
-  - 예시:
-    ```ts
-    initialContent={[{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }]}
-    ```
+1. **기본 스타일**: `includeDefaultStyles={true}` (권장)
+2. **Tailwind CSS**: `className` prop으로 유틸리티 클래스 적용
+3. **커스텀 CSS**: 전통적인 CSS 클래스와 선택자 사용
 
-- uploadFile(file: File) => Promise<string>
-
-  - 설명: 파일 업로드 후 공개 접근 가능한 URL 문자열을 반환
-  - 기본값: 제공하지 않으면 내부에서 URL.createObjectURL로 임시 URL 생성
-  - 예시:
-    ```ts
-    uploadFile={async (file) => {
-      const url = await myUploader(file); // S3/GCS 등 업로드
-      return url; // 예: https://cdn.example.com/...
-    }}
-    ```
-
-- pasteHandler(ctx)
-
-  - 설명: 붙여넣기 동작 커스터마이즈. 반환 true면 기본 처리 취소
-  - ctx: { event: ClipboardEvent; editor; defaultPasteHandler(opts?) }
-  - 옵션: defaultPasteHandler({ pasteBehavior: 'prefer-markdown' | 'prefer-html' })
-  - 기본값: 이미지 파일이 있으면 업로드/삽입, 없으면 defaultPasteHandler()
-  - 예시:
-    ```ts
-    pasteHandler={({ event, defaultPasteHandler }) => {
-      if (event.clipboardData?.getData('text/plain')?.startsWith('http')) {
-        // URL만 붙여넣을 땐 HTML 선호
-        return defaultPasteHandler({ pasteBehavior: 'prefer-html' }) ?? false;
-      }
-      return defaultPasteHandler() ?? false;
-    }}
-    ```
-
-- tables
-
-  - 설명: 표 기능 토글
-  - 항목 및 기본값: splitCells(true), cellBackgroundColor(true), cellTextColor(true), headers(true)
-  - 예시:
-    ```ts
-    tables={{ splitCells: true, cellBackgroundColor: true, cellTextColor: true, headers: true }}
-    ```
-
-- heading
-
-  - 설명: 사용 가능한 헤딩 레벨 목록
-  - 기본값: 지정 안 하면 [1,2,3,4,5,6]
-  - 예시: `heading={{ levels: [1,2,3] }}`
-
-- animations
-
-  - 설명: 블록 변환 애니메이션
-  - 기본값: true
-
-- defaultStyles
-
-  - 설명: 기본 폰트/요소 스타일 초기화 적용
-  - 기본값: true
-
-- disableExtensions
-
-  - 설명: TipTap/BlockNote 확장 비활성화(문자열 이름)
-  - 주의: 내부 이름 일치 필요, 오동작 시 기능 손실 가능
-  - 예시: `disableExtensions={['blockquote']}`
-
-- domAttributes
-
-  - 설명: 에디터 DOM 루트에 추가할 속성
-  - 예시: `domAttributes={{ 'data-editor': 'lumir' }}`
-
-- tabBehavior
-
-  - 설명: Tab 키 동작
-  - 값: 'prefer-navigate-ui' | 'prefer-indent'
-  - 기본값: 'prefer-navigate-ui'
-
-- trailingBlock
-
-  - 설명: 문서 끝에 항상 한 개의 빈 블록 유지
-  - 기본값: true
-
-- resolveFileUrl(url: string) => Promise<string>
-  - 설명: 파일 표시용 URL을 런타임에 변환(CORS/서명 URL 등)
-  - 예시: `resolveFileUrl={async (u) => u}`
-
-#### 이미지 저장 방식 관련
-
-- storeImagesAsBase64 (boolean)
-  - 설명: 외부 `uploadFile`이 없는 경우 이미지 폴백 저장 방식을 결정합니다.
-  - 기본값: `true` (Base64 Data URL 저장)
-  - `false`일 때: 브라우저 `URL.createObjectURL`로 임시 URL을 사용해 미리보기 삽입
-  - 주의: `uploadFile`이 제공되면 이 옵션은 무시되고 업로더가 항상 우선됩니다.
-
-### 뷰 옵션
-
-- editable
-
-  - 설명: 편집 가능 여부
-  - 기본값: true
-
-- theme
-
-  - 설명: 테마 문자열 또는 사용자 정의 객체
-  - 값: 'light' | 'dark' | 커스텀 테마 객체
-  - 기본값: 'light'
-
-- formattingToolbar | linkToolbar | sideMenu | slashMenu | emojiPicker | filePanel | tableHandles | comments
-
-  - 설명: 각 UI 컴포넌트 토글
-  - 기본값: 모두 true(명시적으로 false를 줄 때만 비활성)
-  - 예시: `formattingToolbar={false}`
-
-- onSelectionChange
-
-  - 설명: 선택 상태 변경 시 호출되는 콜백
-  - 예시: `onSelectionChange={() => { /* UI 반영 */ }}`
-
-- className
-
-  - 설명: 에디터에 적용할 커스텀 CSS/Tailwind 클래스
-  - 기본값: 빈 문자열
-  - 예시: `className="min-h-[400px] rounded-lg shadow-lg"`
-
-- includeDefaultStyles
-
-  - 설명: 기본 스타일(w-full h-full overflow-auto) 포함 여부
-  - 기본값: true
-  - 예시: `includeDefaultStyles={false}`로 기본 스타일 제거
-
-- sideMenuAddButton
-  - 설명: 블록 사이드 메뉴의 Add(+ ) 버튼 표시 여부. false면 Add 버튼만 제거하고 드래그 핸들은 그대로 유지
-  - 기본값: true
-  - 공식 패턴: 기본 사이드메뉴를 끄고(SideMenuController로) 커스텀 사이드메뉴 렌더
-  - 예시:
-    ```tsx
-    // Add 버튼 제거, 드래그 핸들 유지
-    <LumirEditor sideMenuAddButton={false} />
-    ```
-
-### 콜백/레퍼런스
-
-- onContentChange(content)
-
-  - 설명: 상위 블록 배열이 변경될 때 호출
-  - 사용: 자동 저장/동기화 트리거로 활용
-  - 예시:
-    ```ts
-    onContentChange={(blocks) => saveDraft(blocks)}
-    ```
-
-- editorRef
-  - 설명: 에디터 인스턴스 접근(명령형 API)
-  - 대표 메서드: `focus()`, `pasteHTML(html)`, `insertBlocks(blocks, at)` 등
-  - 예시:
-    ```tsx
-    const ref = useRef(null as any);
-    <LumirEditor editorRef={ref} />
-    <button onClick={() => ref.current?.focus()}>Focus</button>
-    <button onClick={() => ref.current?.pasteHTML('<img src="/x.png"/>')}>Insert</button>
-    ```
-
-### 기본 동작 요약
-
-- 모든 UI 토글 props는 명시적으로 false를 주지 않으면 기본 활성
-- heading.levels 미지정 시 1~6 사용 가능
-- tables 하위 옵션 미지정 시 모두 활성
-- uploadFile 미제공 시 createObjectURL로 임시 URL 생성해 미리보기 삽입
-
-## 이미지 처리
-
-- 업로드: `uploadFile(file)` → URL 반환 → `<img src>` 삽입
-- 붙여넣기: 클립보드 이미지 자동 업로드/삽입(없으면 기본 핸들러)
-- 드래그앤드롭: `image/*` 만 처리
-
-### 이미지 저장 방식 선택(Base64 기본)
-
-- 기본값: 외부 `uploadFile`이 없을 때 이미지 파일은 Base64 Data URL로 저장됩니다.
-- 전환: URL(ObjectURL) 저장으로 바꾸려면 `storeImagesAsBase64={false}`를 전달하세요.
-- 주입: S3/GCS 등 외부 업로더를 제공하면 `uploadFile`이 항상 우선 적용됩니다.
+### 2. 기본 설정 및 제어
 
 ```tsx
-// Base64(기본)
-<LumirEditor />
-
-// Base64 → URL(ObjectURL)로 폴백 동작 전환
-<LumirEditor storeImagesAsBase64={false} />
-
-// 커스텀 업로더(S3 등)
-<LumirEditor uploadFile={async (file) => {
-  const url = await myS3Uploader(file);
-  return url; // 예: https://cdn.example.com/path/file.png
-}} />
-```
-
-### 드래그앤드롭 중복 삽입 방지
-
-- 에디터 내부에서 dragover/drop 이벤트에 대해 `preventDefault + stopPropagation(+ stopImmediatePropagation)`을 적용하여 BlockNote의 기본 드롭 처리와 커스텀 드롭이 모두 실행되는 중복을 방지합니다.
-- 결과: 동일 이미지를 2회 삽입하는 현상을 차단합니다.
-
-### 이미지/파일 블록 구조 예시
-
-- 이미지(URL)
-
-```json
-[
-  {
-    "id": "auto-or-your-id",
-    "type": "image",
-    "props": {
-      "url": "https://your.cdn/image.png",
-      "caption": "",
-      "previewWidth": 512,
-      "textAlignment": "left",
-      "textColor": "default",
-      "backgroundColor": "default"
-    },
-    "content": null,
-    "children": []
-  }
-]
-```
-
-- 이미지(Base64)
-
-```json
-{
-  "type": "image",
-  "props": {
-    "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-    "caption": "",
-    "previewWidth": 512,
-    "textAlignment": "left",
-    "textColor": "default",
-    "backgroundColor": "default"
-  },
-  "children": []
-}
-```
-
-## 표/헤딩/툴바 예시
-
-```tsx
+// 기본 스타일 포함 (권장)
 <LumirEditor
-  tables={{
-    splitCells: true,
-    cellBackgroundColor: true,
-    cellTextColor: true,
-    headers: true,
-  }}
-  heading={{ levels: [1, 2, 3, 4, 5, 6] }}
-  formattingToolbar
-  linkToolbar
-  sideMenu
-  slashMenu
-  filePanel
+  includeDefaultStyles={true}  // 기본값
+  className="추가-커스텀-클래스"
+/>
+
+// 기본 스타일 완전 제거 (고급 사용자)
+<LumirEditor
+  includeDefaultStyles={false}
+  className="완전-커스텀-에디터-스타일"
 />
 ```
 
-## 블록 사이드 메뉴 커스터마이즈(공식 가이드 기반)
+### 3. Tailwind CSS 스타일링
 
-아래는 BlockNote 공식 패턴을 `LumirEditor` 내부에 적용한 결과입니다. `sideMenuAddButton={false}`일 때 기본 사이드메뉴를 비활성화하고, 컨트롤러로 드래그 핸들만 노출합니다.
+#### 기본 레이아웃 스타일링
 
 ```tsx
-// 내부 구현 개요
-// <BlockNoteView sideMenu={false}>
-//   <SideMenuController sideMenu={(props) => (
-//     <SideMenu {...props}>
-//       <DragHandleButton {...props} />
-//     </SideMenu>
-//   )} />
-// </BlockNoteView>
+<LumirEditor
+  className="
+    min-h-[500px] max-w-4xl mx-auto
+    rounded-xl border border-gray-200 shadow-lg
+    bg-white dark:bg-gray-900
+  "
+/>
 ```
 
-## SSR/StrictMode 주의
+#### 반응형 스타일링
 
-- 클라이언트 전용: Next.js에서는 `dynamic({ ssr:false })` 권장
-- React 19/Next 15 일부 환경 StrictMode 이슈 보고됨 → 필요 시 임시 비활성 고려
+```tsx
+<LumirEditor
+  className="
+    h-64 md:h-96 lg:h-[500px]
+    text-sm md:text-base
+    p-2 md:p-4 lg:p-6
+    rounded-md md:rounded-lg lg:rounded-xl
+    shadow-sm md:shadow-md lg:shadow-lg
+  "
+/>
+```
 
-## 라이선스/크레딧
+#### 고급 내부 요소 스타일링
 
-- 의존: `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`
-- 본 패키지는 BlockNote 무료 기능만 사용합니다.
+```tsx
+<LumirEditor
+  className="
+    /* 에디터 영역 패딩 조정 */
+    [&_.bn-editor]:px-8 [&_.bn-editor]:py-4
+    
+    /* 특정 블록 타입 스타일링 */
+    [&_[data-content-type='paragraph']]:text-base [&_[data-content-type='paragraph']]:leading-relaxed
+    [&_[data-content-type='heading']]:font-bold [&_[data-content-type='heading']]:text-gray-900
+    [&_[data-content-type='list']]:ml-4
+    
+    /* 포커스 상태 스타일링 */
+    focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500
+    
+    /* 테마별 스타일링 */
+    dark:[&_.bn-editor]:bg-gray-800 dark:[&_.bn-editor]:text-white
+    
+    /* 호버 효과 */
+    hover:shadow-md transition-shadow duration-200
+  "
+/>
+```
 
-## Tailwind CSS 통합
+#### 테마별 스타일링
 
-### 프로젝트에서 Tailwind CSS 사용하기
+```tsx
+// 라이트 모드
+<LumirEditor
+  theme="light"
+  className="
+    bg-white text-gray-900 border-gray-200
+    [&_.bn-editor]:bg-white
+    [&_[data-content-type='paragraph']]:text-gray-800
+  "
+/>
 
-이 패키지에 포함된 Tailwind 클래스를 사용하려면, 프로젝트의 `tailwind.config.js`에 패키지 경로를 추가해주세요:
+// 다크 모드
+<LumirEditor
+  theme="dark"
+  className="
+    bg-gray-900 text-white border-gray-700
+    [&_.bn-editor]:bg-gray-900
+    [&_[data-content-type='paragraph']]:text-gray-100
+  "
+/>
+```
+
+### 4. CSS 클래스 스타일링
+
+#### 기본 CSS 구조
+
+```css
+/* 메인 에디터 컨테이너 */
+.my-custom-editor {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+/* 에디터 내용 영역 */
+.my-custom-editor .bn-editor {
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 24px;
+  min-height: 200px;
+}
+
+/* 포커스 상태 */
+.my-custom-editor:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+```
+
+#### 블록별 세부 스타일링
+
+```css
+/* 문단 블록 */
+.my-custom-editor .bn-block[data-content-type="paragraph"] {
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* 헤딩 블록 */
+.my-custom-editor .bn-block[data-content-type="heading"] {
+  font-weight: 700;
+  margin: 24px 0 12px 0;
+  color: #111827;
+}
+
+.my-custom-editor .bn-block[data-content-type="heading"][data-level="1"] {
+  font-size: 28px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+```
+
+## 🔧 고급 사용법
+
+### 명령형 API 사용
+
+```tsx
+function AdvancedEditor() {
+  const editorRef = useRef<EditorType>(null);
+
+  const insertTable = () => {
+    editorRef.current?.insertBlocks(
+      [
+        {
+          type: "table",
+          content: {
+            type: "tableContent",
+            rows: [{ cells: ["셀 1", "셀 2"] }, { cells: ["셀 3", "셀 4"] }],
+          },
+        },
+      ],
+      editorRef.current.getTextCursorPosition().block
+    );
+  };
+
+  return (
+    <div>
+      <button onClick={insertTable}>표 삽입</button>
+      <button onClick={() => editorRef.current?.focus()}>포커스</button>
+      <LumirEditor editorRef={editorRef} />
+    </div>
+  );
+}
+```
+
+### 커스텀 붙여넣기 핸들러
+
+```tsx
+<LumirEditor
+  pasteHandler={({ event, defaultPasteHandler }) => {
+    const text = event.clipboardData?.getData("text/plain");
+
+    // URL 감지 시 자동 링크 생성
+    if (text?.startsWith("http")) {
+      return defaultPasteHandler({ pasteBehavior: "prefer-html" }) ?? false;
+    }
+
+    // 기본 처리
+    return defaultPasteHandler() ?? false;
+  }}
+/>
+```
+
+### 실시간 자동 저장
+
+```tsx
+function AutoSaveEditor() {
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">(
+    "saved"
+  );
+
+  const handleContentChange = useCallback(
+    debounce(async (content: DefaultPartialBlock[]) => {
+      setSaveStatus("saving");
+      try {
+        await saveToServer(JSON.stringify(content));
+        setSaveStatus("saved");
+      } catch (error) {
+        setSaveStatus("error");
+      }
+    }, 1000),
+    []
+  );
+
+  return (
+    <div>
+      <div className="mb-2">
+        상태: <span className={`badge badge-${saveStatus}`}>{saveStatus}</span>
+      </div>
+      <LumirEditor onContentChange={handleContentChange} />
+    </div>
+  );
+}
+```
+
+## 📱 반응형 디자인
+
+```tsx
+<LumirEditor
+  className="
+    w-full h-96
+    md:h-[500px] 
+    lg:h-[600px]
+    rounded-lg 
+    border border-gray-300
+    md:rounded-xl
+    lg:shadow-xl
+  "
+  // 모바일에서는 일부 툴바 숨김
+  formattingToolbar={true}
+  filePanel={window.innerWidth > 768}
+  tableHandles={window.innerWidth > 1024}
+/>
+```
+
+## ⚠️ 주의사항 및 문제 해결
+
+### 1. SSR 환경 (필수)
+
+Next.js 등 SSR 환경에서는 반드시 클라이언트 사이드에서만 렌더링해야 합니다:
+
+```tsx
+// ✅ 올바른 방법
+const LumirEditor = dynamic(
+  () => import("@lumir-company/editor").then((m) => m.LumirEditor),
+  { ssr: false }
+);
+
+// ❌ 잘못된 방법 - SSR 오류 발생
+import { LumirEditor } from "@lumir-company/editor";
+```
+
+### 2. React StrictMode
+
+React 19/Next.js 15 일부 환경에서 StrictMode 이슈가 보고되었습니다. 문제 발생 시 임시로 StrictMode를 비활성화하는 것을 고려해보세요.
+
+### 3. 일반적인 설치 문제
+
+#### TypeScript 타입 오류
+
+```bash
+# TypeScript 타입 문제 해결
+npm install --save-dev @types/react @types/react-dom
+
+# 또는 tsconfig.json에서
+{
+  "compilerOptions": {
+    "skipLibCheck": true
+  }
+}
+```
+
+#### CSS 스타일이 적용되지 않는 경우
+
+```tsx
+// 1. CSS 파일이 올바르게 임포트되었는지 확인
+import "@lumir-company/editor/style.css";
+
+// 2. Tailwind CSS 설정 확인
+// tailwind.config.js에 패키지 경로 추가 필요
+
+// 3. CSS 우선순위 문제인 경우
+.my-editor {
+  /* !important 사용 또는 더 구체적인 선택자 */
+}
+```
+
+#### 번들러 호환성 문제
 
 ```js
-// tailwind.config.js
+// Webpack 설정
 module.exports = {
-  content: [
-    // 기존 경로들...
-    './node_modules/@kingdoo/editor/dist/**/*.js',
-  ],
-  // ...
+  resolve: {
+    fallback: {
+      crypto: require.resolve("crypto-browserify"),
+      stream: require.resolve("stream-browserify"),
+    },
+  },
+};
+
+// Vite 설정
+export default defineConfig({
+  optimizeDeps: {
+    include: ["@lumir-company/editor"],
+  },
+});
+```
+
+#### 이미지 업로드 문제
+
+```tsx
+// CORS 문제 해결
+const uploadFile = async (file: File) => {
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    headers: {
+      // CORS 헤더 확인
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`업로드 실패: ${response.status}`);
+  }
+
+  return url; // 반드시 접근 가능한 public URL
 };
 ```
 
-또는 Tailwind CSS v4를 사용하는 경우 CSS 파일에서:
+### 4. 성능 최적화
 
-```css
-@import 'tailwindcss';
-@source "../node_modules/@kingdoo/editor";
-```
-
-### className을 통한 스타일 커스터마이징
-
-Tailwind 클래스를 사용하여 에디터의 스타일을 커스터마이징할 수 있습니다:
+#### 큰 문서 처리
 
 ```tsx
-<LumirEditor className='min-h-[500px] rounded-lg shadow-lg border border-gray-200' />
+// 대용량 문서의 경우 초기 렌더링 최적화
+<LumirEditor
+  initialContent={largeContent}
+  // 불필요한 기능 비활성화
+  animations={false}
+  formattingToolbar={false}
+  // 메모리 사용량 줄이기
+  storeImagesAsBase64={false}
+/>
 ```
 
-## 변경 기록
+#### 메모리 누수 방지
 
-- 0.1.15: 파일 검증 로직 보완
-- 0.1.14: 슬래쉬 추천 메뉴 항목 변경
-- 0.1.13: Audio, Video, Movie 업로드 Default : false
-- 0.1.12: 조건부 Helper 항목 렌더링 픽스.
-- 0.1.11: 이미지 중복 드롭 이슈 픽스.
-- 0.1.10:
-  - 기본 이미지 저장 방식을 Base64로 설정(`storeImagesAsBase64` 기본값 true)
-  - `storeImagesAsBase64` prop 추가: 폴백 저장 방식을 Base64 ↔ URL(ObjectURL)로 전환 가능
-  - 드래그앤드롭 중복 삽입 방지: 기본/커스텀 드롭 처리 동시 실행 차단
-- 0.1.9: 에디터 types export, 정리
-- 0.1.8: Font 상속 변경
-- 0.1.7: 사이드메뉴 토글 안정화(기본 사이드메뉴 끄고 Controller로 주입), DragHandle 전용 메뉴 기본 제공, README 보강, Tailwind 예시 추가
-- 0.1.1: `sideMenuAddButton` 추가(플러스 버튼 토글, 드래그 핸들 유지), 공식 가이드와 동일한 커스텀 사이드메뉴 패턴 연동
-- 0.1.0: 초기 스캐폴딩
+```tsx
+// 컴포넌트 언마운트 시 정리
+useEffect(() => {
+  return () => {
+    // 에디터 정리 로직
+    if (editorRef.current) {
+      editorRef.current = null;
+    }
+  };
+}, []);
+```
+
+## 🚀 시작하기 체크리스트
+
+프로젝트에 LumirEditor를 성공적으로 통합하기 위한 체크리스트:
+
+### 📋 필수 설치 단계
+
+- [ ] 패키지 설치: `npm install @lumir-company/editor`
+- [ ] CSS 임포트: `import "@lumir-company/editor/style.css"`
+- [ ] TypeScript 타입 설치: `npm install --save-dev @types/react @types/react-dom`
+- [ ] SSR 환경이라면 dynamic import 설정
+
+### 🎨 스타일링 설정
+
+- [ ] Tailwind CSS 사용 시 `tailwind.config.js`에 패키지 경로 추가
+- [ ] 기본 스타일 적용 확인: `includeDefaultStyles={true}`
+- [ ] 커스텀 스타일이 필요하면 `className` prop 활용
+
+### 🔧 기능 설정
+
+- [ ] 파일 업로드가 필요하면 `uploadFile` 함수 구현
+- [ ] 콘텐츠 변경 감지가 필요하면 `onContentChange` 콜백 설정
+- [ ] 필요에 따라 툴바와 메뉴 표시/숨김 설정
+
+### ✅ 테스트 확인
+
+- [ ] 기본 텍스트 입력 동작 확인
+- [ ] 이미지 업로드/붙여넣기 동작 확인
+- [ ] 스타일이 올바르게 적용되는지 확인
+- [ ] 다양한 브라우저에서 테스트
+
+## 📋 변경 기록
+
+### v0.2.0 (최신)
+
+- ✨ **하이브리드 콘텐츠 지원**: `initialContent`에서 JSON 객체 배열과 JSON 문자열 모두 지원
+- ✨ **Placeholder 기능**: 첫 번째 블록에 placeholder 텍스트 설정 가능
+- ✨ **초기 블록 개수 설정**: `initialEmptyBlocks` prop으로 빈 블록 개수 조정
+- 🔧 **유틸리티 클래스 추가**: `ContentUtils`, `EditorConfig` 클래스로 코드 정리
+- 📁 **타입 분리**: 모든 타입 정의를 별도 파일로 분리하여 관리 개선
+- 🎨 **기본 스타일 최적화**: 더 나은 기본 패딩과 스타일 적용
+
+### v0.1.15
+
+- 🐛 파일 검증 로직 보완
+
+### v0.1.14
+
+- 🔧 슬래시 추천 메뉴 항목 변경
+
+### v0.1.13
+
+- ⚙️ Audio, Video, Movie 업로드 기본값을 false로 변경
+
+### v0.1.12
+
+- 🐛 조건부 Helper 항목 렌더링 수정
+
+### v0.1.11
+
+- 🐛 이미지 중복 드롭 이슈 수정
+
+### v0.1.10
+
+- 🎨 기본 이미지 저장 방식을 Base64로 설정
+- ✨ `storeImagesAsBase64` prop 추가
+- 🐛 드래그앤드롭 중복 삽입 방지
+
+### v0.1.0
+
+- 🎉 초기 릴리스
+
+## 📄 라이선스
+
+이 패키지는 BlockNote의 무료 기능만을 사용합니다.
+
+- 의존성: `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`
+- BlockNote 라이선스를 따릅니다.

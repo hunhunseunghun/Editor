@@ -21,6 +21,8 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
+  ContentUtils: () => ContentUtils,
+  EditorConfig: () => EditorConfig,
   LumirEditor: () => LumirEditor,
   cn: () => cn
 });
@@ -38,6 +40,127 @@ function cn(...inputs) {
 
 // src/components/LumirEditor.tsx
 var import_jsx_runtime = require("react/jsx-runtime");
+var ContentUtils = class {
+  /**
+   * JSON 문자열의 유효성을 검증합니다
+   * @param jsonString 검증할 JSON 문자열
+   * @returns 유효한 JSON 문자열인지 여부
+   */
+  static isValidJSONString(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      return Array.isArray(parsed);
+    } catch {
+      return false;
+    }
+  }
+  /**
+   * JSON 문자열을 DefaultPartialBlock 배열로 파싱합니다
+   * @param jsonString JSON 문자열
+   * @returns 파싱된 블록 배열 또는 null (파싱 실패 시)
+   */
+  static parseJSONContent(jsonString) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  /**
+   * 기본 paragraph 블록 생성
+   * @returns 기본 설정이 적용된 DefaultPartialBlock
+   */
+  static createDefaultBlock() {
+    return {
+      type: "paragraph",
+      props: {
+        textColor: "default",
+        backgroundColor: "default",
+        textAlignment: "left"
+      },
+      content: [{ type: "text", text: "", styles: {} }],
+      children: []
+    };
+  }
+  /**
+   * 콘텐츠 유효성 검증 및 기본값 설정
+   * @param content 사용자 제공 콘텐츠 (객체 배열 또는 JSON 문자열)
+   * @param emptyBlockCount 빈 블록 개수 (기본값: 3)
+   * @param placeholder 첫 번째 블록의 placeholder 텍스트
+   * @returns 검증된 콘텐츠 배열
+   */
+  static validateContent(content, emptyBlockCount = 3, placeholder) {
+    if (typeof content === "string") {
+      if (content.trim() === "") {
+        return this.createEmptyBlocks(emptyBlockCount, placeholder);
+      }
+      const parsedContent = this.parseJSONContent(content);
+      if (parsedContent && parsedContent.length > 0) {
+        return parsedContent;
+      }
+      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+    }
+    if (!content || content.length === 0) {
+      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+    }
+    return content;
+  }
+  /**
+   * 빈 블록들을 생성합니다
+   * @param emptyBlockCount 생성할 블록 개수
+   * @param placeholder 첫 번째 블록의 placeholder 텍스트
+   * @returns 생성된 빈 블록 배열
+   */
+  static createEmptyBlocks(emptyBlockCount, placeholder) {
+    return Array.from({ length: emptyBlockCount }, (_, index) => {
+      const block = this.createDefaultBlock();
+      if (index === 0 && placeholder) {
+        block.content = [{ type: "text", text: placeholder, styles: {} }];
+      }
+      return block;
+    });
+  }
+};
+var EditorConfig = class {
+  /**
+   * 테이블 설정 기본값 적용
+   * @param userTables 사용자 테이블 설정
+   * @returns 기본값이 적용된 테이블 설정
+   */
+  static getDefaultTableConfig(userTables) {
+    return {
+      splitCells: userTables?.splitCells ?? true,
+      cellBackgroundColor: userTables?.cellBackgroundColor ?? true,
+      cellTextColor: userTables?.cellTextColor ?? true,
+      headers: userTables?.headers ?? true
+    };
+  }
+  /**
+   * 헤딩 설정 기본값 적용
+   * @param userHeading 사용자 헤딩 설정
+   * @returns 기본값이 적용된 헤딩 설정
+   */
+  static getDefaultHeadingConfig(userHeading) {
+    return userHeading?.levels && userHeading.levels.length > 0 ? userHeading : { levels: [1, 2, 3, 4, 5, 6] };
+  }
+  /**
+   * 비활성화할 확장 기능 목록 생성
+   * @param userExtensions 사용자 정의 비활성 확장
+   * @param allowVideo 비디오 업로드 허용 여부
+   * @param allowAudio 오디오 업로드 허용 여부
+   * @returns 비활성화할 확장 기능 목록
+   */
+  static getDisabledExtensions(userExtensions, allowVideo = false, allowAudio = false) {
+    const set = new Set(userExtensions ?? []);
+    if (!allowVideo) set.add("video");
+    if (!allowAudio) set.add("audio");
+    return Array.from(set);
+  }
+};
 var createObjectUrlUploader = async (file) => {
   return URL.createObjectURL(file);
 };
@@ -50,6 +173,8 @@ var fileToBase64 = async (file) => await new Promise((resolve, reject) => {
 function LumirEditor({
   // editor options
   initialContent,
+  initialEmptyBlocks = 3,
+  placeholder,
   uploadFile,
   pasteHandler,
   tables,
@@ -85,41 +210,26 @@ function LumirEditor({
   editorRef
 }) {
   const validatedContent = (0, import_react.useMemo)(() => {
-    const defaultContent = [
-      {
-        type: "paragraph",
-        props: {
-          textColor: "default",
-          backgroundColor: "default",
-          textAlignment: "left"
-        },
-        content: [{ type: "text", text: "", styles: {} }],
-        children: []
-      }
-    ];
-    if (!initialContent || initialContent.length === 0) {
-      return defaultContent;
-    }
-    return initialContent;
-  }, [initialContent]);
+    return ContentUtils.validateContent(
+      initialContent,
+      initialEmptyBlocks,
+      placeholder
+    );
+  }, [initialContent, initialEmptyBlocks, placeholder]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
       initialContent: validatedContent,
-      tables: {
-        splitCells: tables?.splitCells ?? true,
-        cellBackgroundColor: tables?.cellBackgroundColor ?? true,
-        cellTextColor: tables?.cellTextColor ?? true,
-        headers: tables?.headers ?? true
-      },
-      heading: heading?.levels && heading.levels.length > 0 ? heading : { levels: [1, 2, 3, 4, 5, 6] },
+      tables: EditorConfig.getDefaultTableConfig(tables),
+      heading: EditorConfig.getDefaultHeadingConfig(heading),
       animations,
       defaultStyles,
       // 확장 비활성: 비디오/오디오만 제어(파일 확장은 내부 드롭 로직 의존 → 비활성화하지 않음)
       disableExtensions: (0, import_react.useMemo)(() => {
-        const set = new Set(disableExtensions ?? []);
-        if (!allowVideoUpload) set.add("video");
-        if (!allowAudioUpload) set.add("audio");
-        return Array.from(set);
+        return EditorConfig.getDisabledExtensions(
+          disableExtensions,
+          allowVideoUpload,
+          allowAudioUpload
+        );
       }, [disableExtensions, allowVideoUpload, allowAudioUpload]),
       domAttributes,
       tabBehavior,
@@ -287,7 +397,7 @@ function LumirEditor({
     import_mantine.BlockNoteView,
     {
       className: cn(
-        includeDefaultStyles && 'lumirEditor w-full h-full overflow-auto [&_[data-content-type="paragraph"]]:text-[14px]',
+        includeDefaultStyles && 'lumirEditor w-full h-full min-w-[300px] overflow-auto rounded-md border border-gray-300 focus-within:ring-2 focus-within:ring-black [&_.bn-editor]:px-[12px] [&_[data-content-type="paragraph"]]:text-[14px] bg-white',
         className
       ),
       editor,
@@ -331,6 +441,8 @@ function LumirEditor({
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  ContentUtils,
+  EditorConfig,
   LumirEditor,
   cn
 });

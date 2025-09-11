@@ -25,6 +25,12 @@
   "exclude": [
     "node_modules",
     "dist",
-    "examples"
+    "examples",
+    "src/components/LumirEditor-new.tsx",
+    "src/components/LumirEditor-old.tsx",
+    "src/constants/**/*",
+    "src/hooks/**/*",
+    "src/utils/content-utils.ts",
+    "src/utils/editor-config.ts"
   ]
 }

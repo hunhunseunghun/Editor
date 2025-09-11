@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from "react";
 import {
   useCreateBlockNote,
   SideMenu as BlockSideMenu,
@@ -8,89 +8,177 @@ import {
   DragHandleButton,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
-} from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/mantine';
-import { cn } from '../utils/cn';
+} from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { cn } from "../utils/cn";
 
 import type {
-  BlockNoteEditor as CoreBlockNoteEditor,
-  PartialBlock,
+  DefaultPartialBlock,
+  LumirEditorProps,
   DefaultBlockSchema,
   DefaultInlineContentSchema,
   DefaultStyleSchema,
-} from '@blocknote/core';
+} from "../types";
 
-export type EditorType = CoreBlockNoteEditor<
-  DefaultBlockSchema,
-  DefaultInlineContentSchema,
-  DefaultStyleSchema
->;
-export type DefaultPartialBlock = PartialBlock<
-  DefaultBlockSchema,
-  DefaultInlineContentSchema,
-  DefaultStyleSchema
->;
+// ==========================================
+// 유틸리티 클래스들 (안전한 리팩토링)
+// ==========================================
 
-export interface LumirEditorProps {
-  // Editor options
-  initialContent?: DefaultPartialBlock[];
-  uploadFile?: (file: File) => Promise<string>;
-  // 외부 업로더(uploadFile)가 없을 때의 폴백 저장 방식: true=Base64, false=ObjectURL
-  storeImagesAsBase64?: boolean;
-  // 미디어 업로드 허용 범위(기본 비활성)
-  allowVideoUpload?: boolean;
-  allowAudioUpload?: boolean;
-  // 일반 파일 업로드 허용 (기본 비활성)
-  allowFileUpload?: boolean;
-  pasteHandler?: (ctx: {
-    event: ClipboardEvent;
-    editor: EditorType;
-    defaultPasteHandler: (context?: {
-      pasteBehavior?: 'prefer-markdown' | 'prefer-html';
-    }) => boolean | undefined;
-  }) => boolean | undefined;
-  tables?: {
-    splitCells?: boolean;
-    cellBackgroundColor?: boolean;
-    cellTextColor?: boolean;
-    headers?: boolean;
-  };
-  heading?: { levels?: (1 | 2 | 3 | 4 | 5 | 6)[] };
-  animations?: boolean;
-  defaultStyles?: boolean;
-  disableExtensions?: string[];
-  domAttributes?: Record<string, string>;
-  tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
-  trailingBlock?: boolean;
-  resolveFileUrl?: (url: string) => Promise<string>;
+/**
+ * 콘텐츠 관리 유틸리티
+ * 기본 블록 생성 및 콘텐츠 검증 로직을 담당
+ */
+export class ContentUtils {
+  /**
+   * JSON 문자열의 유효성을 검증합니다
+   * @param jsonString 검증할 JSON 문자열
+   * @returns 유효한 JSON 문자열인지 여부
+   */
+  static isValidJSONString(jsonString: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonString);
+      return Array.isArray(parsed);
+    } catch {
+      return false;
+    }
+  }
 
-  // View options
-  editable?: boolean;
-  theme?:
-    | 'light'
-    | 'dark'
-    | Partial<Record<string, unknown>>
-    | {
-        light: Partial<Record<string, unknown>>;
-        dark: Partial<Record<string, unknown>>;
-      };
-  formattingToolbar?: boolean;
-  linkToolbar?: boolean;
-  sideMenu?: boolean;
-  slashMenu?: boolean;
-  emojiPicker?: boolean;
-  filePanel?: boolean;
-  tableHandles?: boolean;
-  comments?: boolean;
-  onSelectionChange?: () => void;
-  className?: string;
-  includeDefaultStyles?: boolean; // 기본 스타일 포함 여부
-  // Add block(플러스) 버튼 토글: true(기본) = 표시, false = 숨김(드래그 핸들은 유지)
-  sideMenuAddButton?: boolean;
+  /**
+   * JSON 문자열을 DefaultPartialBlock 배열로 파싱합니다
+   * @param jsonString JSON 문자열
+   * @returns 파싱된 블록 배열 또는 null (파싱 실패 시)
+   */
+  static parseJSONContent(jsonString: string): DefaultPartialBlock[] | null {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed)) {
+        return parsed as DefaultPartialBlock[];
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+  /**
+   * 기본 paragraph 블록 생성
+   * @returns 기본 설정이 적용된 DefaultPartialBlock
+   */
+  static createDefaultBlock(): DefaultPartialBlock {
+    return {
+      type: "paragraph",
+      props: {
+        textColor: "default",
+        backgroundColor: "default",
+        textAlignment: "left",
+      },
+      content: [{ type: "text", text: "", styles: {} }],
+      children: [],
+    };
+  }
 
-  // Callbacks / refs
-  onContentChange?: (content: DefaultPartialBlock[]) => void;
-  editorRef?: React.MutableRefObject<EditorType | null>;
+  /**
+   * 콘텐츠 유효성 검증 및 기본값 설정
+   * @param content 사용자 제공 콘텐츠 (객체 배열 또는 JSON 문자열)
+   * @param emptyBlockCount 빈 블록 개수 (기본값: 3)
+   * @param placeholder 첫 번째 블록의 placeholder 텍스트
+   * @returns 검증된 콘텐츠 배열
+   */
+  static validateContent(
+    content?: DefaultPartialBlock[] | string,
+    emptyBlockCount: number = 3,
+    placeholder?: string
+  ): DefaultPartialBlock[] {
+    // 1. 문자열인 경우 JSON 파싱 시도
+    if (typeof content === "string") {
+      if (content.trim() === "") {
+        return this.createEmptyBlocks(emptyBlockCount, placeholder);
+      }
+
+      const parsedContent = this.parseJSONContent(content);
+      if (parsedContent && parsedContent.length > 0) {
+        return parsedContent;
+      }
+
+      // 파싱 실패 시 빈 블록 생성
+      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+    }
+
+    // 2. 배열인 경우 기존 로직
+    if (!content || content.length === 0) {
+      return this.createEmptyBlocks(emptyBlockCount, placeholder);
+    }
+
+    return content;
+  }
+
+  /**
+   * 빈 블록들을 생성합니다
+   * @param emptyBlockCount 생성할 블록 개수
+   * @param placeholder 첫 번째 블록의 placeholder 텍스트
+   * @returns 생성된 빈 블록 배열
+   */
+  private static createEmptyBlocks(
+    emptyBlockCount: number,
+    placeholder?: string
+  ): DefaultPartialBlock[] {
+    return Array.from({ length: emptyBlockCount }, (_, index) => {
+      const block = this.createDefaultBlock();
+      // 첫 번째 블록에 placeholder 텍스트 적용
+      if (index === 0 && placeholder) {
+        block.content = [{ type: "text", text: placeholder, styles: {} }];
+      }
+      return block;
+    });
+  }
+}
+
+/**
+ * 에디터 설정 관리 유틸리티
+ * 각종 설정의 기본값과 검증 로직을 담당
+ */
+export class EditorConfig {
+  /**
+   * 테이블 설정 기본값 적용
+   * @param userTables 사용자 테이블 설정
+   * @returns 기본값이 적용된 테이블 설정
+   */
+  static getDefaultTableConfig(userTables?: LumirEditorProps["tables"]) {
+    return {
+      splitCells: userTables?.splitCells ?? true,
+      cellBackgroundColor: userTables?.cellBackgroundColor ?? true,
+      cellTextColor: userTables?.cellTextColor ?? true,
+      headers: userTables?.headers ?? true,
+    };
+  }
+
+  /**
+   * 헤딩 설정 기본값 적용
+   * @param userHeading 사용자 헤딩 설정
+   * @returns 기본값이 적용된 헤딩 설정
+   */
+  static getDefaultHeadingConfig(userHeading?: LumirEditorProps["heading"]) {
+    return userHeading?.levels && userHeading.levels.length > 0
+      ? userHeading
+      : { levels: [1, 2, 3, 4, 5, 6] as (1 | 2 | 3 | 4 | 5 | 6)[] };
+  }
+
+  /**
+   * 비활성화할 확장 기능 목록 생성
+   * @param userExtensions 사용자 정의 비활성 확장
+   * @param allowVideo 비디오 업로드 허용 여부
+   * @param allowAudio 오디오 업로드 허용 여부
+   * @returns 비활성화할 확장 기능 목록
+   */
+  static getDisabledExtensions(
+    userExtensions?: string[],
+    allowVideo = false,
+    allowAudio = false
+  ): string[] {
+    const set = new Set<string>(userExtensions ?? []);
+    if (!allowVideo) set.add("video");
+    if (!allowAudio) set.add("audio");
+    return Array.from(set);
+  }
 }
 
 const createObjectUrlUploader = async (file: File): Promise<string> => {
@@ -101,13 +189,15 @@ const fileToBase64 = async (file: File): Promise<string> =>
   await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('FileReader failed'));
+    reader.onerror = () => reject(new Error("FileReader failed"));
     reader.readAsDataURL(file);
   });
 
 export default function LumirEditor({
   // editor options
   initialContent,
+  initialEmptyBlocks = 3,
+  placeholder,
   uploadFile,
   pasteHandler,
   tables,
@@ -116,7 +206,7 @@ export default function LumirEditor({
   defaultStyles = true,
   disableExtensions,
   domAttributes,
-  tabBehavior = 'prefer-navigate-ui',
+  tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
   resolveFileUrl,
   storeImagesAsBase64 = true,
@@ -125,7 +215,7 @@ export default function LumirEditor({
   allowFileUpload = false,
   // view options
   editable = true,
-  theme = 'light',
+  theme = "light",
   formattingToolbar = true,
   linkToolbar = true,
   sideMenu = true,
@@ -135,7 +225,7 @@ export default function LumirEditor({
   tableHandles = true,
   comments = true,
   onSelectionChange,
-  className = '',
+  className = "",
   includeDefaultStyles = true,
   sideMenuAddButton = true,
   // callbacks / refs
@@ -143,23 +233,12 @@ export default function LumirEditor({
   editorRef,
 }: LumirEditorProps) {
   const validatedContent = useMemo<DefaultPartialBlock[]>(() => {
-    const defaultContent: DefaultPartialBlock[] = [
-      {
-        type: 'paragraph',
-        props: {
-          textColor: 'default',
-          backgroundColor: 'default',
-          textAlignment: 'left',
-        },
-        content: [{ type: 'text', text: '', styles: {} }],
-        children: [],
-      },
-    ];
-    if (!initialContent || initialContent.length === 0) {
-      return defaultContent;
-    }
-    return initialContent;
-  }, [initialContent]);
+    return ContentUtils.validateContent(
+      initialContent,
+      initialEmptyBlocks,
+      placeholder
+    );
+  }, [initialContent, initialEmptyBlocks, placeholder]);
 
   const editor = useCreateBlockNote<
     DefaultBlockSchema,
@@ -168,24 +247,17 @@ export default function LumirEditor({
   >(
     {
       initialContent: validatedContent as DefaultPartialBlock[],
-      tables: {
-        splitCells: tables?.splitCells ?? true,
-        cellBackgroundColor: tables?.cellBackgroundColor ?? true,
-        cellTextColor: tables?.cellTextColor ?? true,
-        headers: tables?.headers ?? true,
-      },
-      heading:
-        heading?.levels && heading.levels.length > 0
-          ? heading
-          : { levels: [1, 2, 3, 4, 5, 6] as (1 | 2 | 3 | 4 | 5 | 6)[] },
+      tables: EditorConfig.getDefaultTableConfig(tables),
+      heading: EditorConfig.getDefaultHeadingConfig(heading),
       animations,
       defaultStyles,
       // 확장 비활성: 비디오/오디오만 제어(파일 확장은 내부 드롭 로직 의존 → 비활성화하지 않음)
       disableExtensions: useMemo(() => {
-        const set = new Set<string>(disableExtensions ?? []);
-        if (!allowVideoUpload) set.add('video');
-        if (!allowAudioUpload) set.add('audio');
-        return Array.from(set);
+        return EditorConfig.getDisabledExtensions(
+          disableExtensions,
+          allowVideoUpload,
+          allowAudioUpload
+        );
       }, [disableExtensions, allowVideoUpload, allowAudioUpload]),
       domAttributes,
       tabBehavior,
@@ -204,7 +276,7 @@ export default function LumirEditor({
           try {
             return await createObjectUrlUploader(file);
           } catch {
-            throw new Error('Failed to process file for upload');
+            throw new Error("Failed to process file for upload");
           }
         }
       },
@@ -216,9 +288,9 @@ export default function LumirEditor({
         const accepted: File[] = files.filter(
           (f: File) =>
             f.size > 0 &&
-            (f.type?.startsWith('image/') ||
+            (f.type?.startsWith("image/") ||
               (!f.type &&
-                /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ''))),
+                /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || "")))
         );
         // 파일 항목이 있으나 허용되지 않으면 기본 처리도 막고 무시
         if (files.length > 0 && accepted.length === 0) {
@@ -239,9 +311,9 @@ export default function LumirEditor({
               // 업로드 실패 파일은 삽입하지 않음 (삭제/스킵)
               // console.warn로만 기록하여 UI 오류를 막음
               console.warn(
-                'Image upload failed, skipped:',
-                file.name || '',
-                err,
+                "Image upload failed, skipped:",
+                file.name || "",
+                err
               );
               continue;
             }
@@ -261,15 +333,15 @@ export default function LumirEditor({
       tables?.cellBackgroundColor,
       tables?.cellTextColor,
       tables?.headers,
-      heading?.levels?.join(','),
+      heading?.levels?.join(","),
       animations,
       defaultStyles,
-      disableExtensions?.join(','),
+      disableExtensions?.join(","),
       domAttributes ? JSON.stringify(domAttributes) : undefined,
       tabBehavior,
       trailingBlock,
       resolveFileUrl,
-    ],
+    ]
   );
 
   useEffect(() => {
@@ -278,17 +350,17 @@ export default function LumirEditor({
     const el = editor.domElement as HTMLElement | undefined;
     if (!editable) {
       if (el) {
-        el.style.userSelect = 'text';
+        el.style.userSelect = "text";
         (
           el.style as CSSStyleDeclaration & { webkitUserSelect?: string }
-        ).webkitUserSelect = 'text';
+        ).webkitUserSelect = "text";
       }
     }
   }, [editor, editable]);
 
   useEffect(() => {
     if (!editor || !onContentChange) return;
-    let lastContent = '';
+    let lastContent = "";
     const handleContentChange = () => {
       const topLevelBlocks =
         editor.topLevelBlocks as unknown as DefaultPartialBlock[];
@@ -317,12 +389,12 @@ export default function LumirEditor({
       if (e.defaultPrevented) return;
       const hasFiles = (
         e.dataTransfer?.types as unknown as string[] | undefined
-      )?.includes?.('Files');
+      )?.includes?.("Files");
       if (hasFiles) {
         e.preventDefault();
         e.stopPropagation();
         // @ts-ignore
-        if (typeof (e as any).stopImmediatePropagation === 'function') {
+        if (typeof (e as any).stopImmediatePropagation === "function") {
           // @ts-ignore
           (e as any).stopImmediatePropagation();
         }
@@ -333,7 +405,7 @@ export default function LumirEditor({
       if (!e.dataTransfer) return;
       const hasFiles = (
         (e.dataTransfer.types as unknown as string[] | undefined) ?? []
-      ).includes('Files');
+      ).includes("Files");
       if (!hasFiles) return;
 
       // 기본 드롭 동작을 항상 차단해, 허용되지 않는 파일이 렌더링되지 않도록 함
@@ -345,15 +417,15 @@ export default function LumirEditor({
       // DataTransferItem 우선 (디렉토리/가짜 항목 배제)
       const items = Array.from(e.dataTransfer.items ?? []);
       const files = items
-        .filter((it) => it.kind === 'file')
+        .filter((it) => it.kind === "file")
         .map((it) => it.getAsFile())
         .filter((f): f is File => !!f);
 
       const accepted = files.filter(
         (f) =>
           f.size > 0 &&
-          (f.type?.startsWith('image/') ||
-            (!f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || ''))),
+          (f.type?.startsWith("image/") ||
+            (!f.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(f.name || "")))
       );
       if (accepted.length === 0) return; // 차단만 하고 아무것도 삽입하지 않음
 
@@ -367,19 +439,19 @@ export default function LumirEditor({
             editor?.pasteHTML(`<img src="${url}" alt="image" />`);
           } catch (err) {
             // 실패 파일은 삽입하지 않음
-            console.warn('Image upload failed, skipped:', f.name || '', err);
+            console.warn("Image upload failed, skipped:", f.name || "", err);
             continue;
           }
         }
       })();
     };
-    el.addEventListener('dragover', handleDragOver, { capture: true });
-    el.addEventListener('drop', handleDrop, { capture: true });
+    el.addEventListener("dragover", handleDragOver, { capture: true });
+    el.addEventListener("drop", handleDrop, { capture: true });
     return () => {
-      el.removeEventListener('dragover', handleDragOver, {
+      el.removeEventListener("dragover", handleDragOver, {
         capture: true,
       } as any);
-      el.removeEventListener('drop', handleDrop, { capture: true } as any);
+      el.removeEventListener("drop", handleDrop, { capture: true } as any);
     };
   }, [
     editor,
@@ -406,12 +478,12 @@ export default function LumirEditor({
     <BlockNoteView
       className={cn(
         includeDefaultStyles &&
-          'lumirEditor w-full h-full overflow-auto [&_[data-content-type="paragraph"]]:text-[14px]',
-        className,
+          'lumirEditor w-full h-full min-w-[300px] overflow-auto rounded-md border border-gray-300 focus-within:ring-2 focus-within:ring-black [&_.bn-editor]:px-[12px] [&_[data-content-type="paragraph"]]:text-[14px] bg-white',
+        className
       )}
       editor={editor}
       editable={editable}
-      theme={theme as 'light' | 'dark' | undefined}
+      theme={theme as "light" | "dark" | undefined}
       formattingToolbar={formattingToolbar}
       linkToolbar={linkToolbar}
       sideMenu={computedSideMenu}
@@ -420,24 +492,25 @@ export default function LumirEditor({
       filePanel={filePanel}
       tableHandles={tableHandles}
       comments={comments}
-      onSelectionChange={onSelectionChange}>
+      onSelectionChange={onSelectionChange}
+    >
       <SuggestionMenuController
-        triggerCharacter='/'
+        triggerCharacter="/"
         getItems={async (query: string) => {
           const items = getDefaultReactSlashMenuItems(editor);
           const filtered = items.filter((it: any) => {
-            const k = (it?.key || '').toString();
-            if (['video', 'audio', 'file'].includes(k)) return false;
+            const k = (it?.key || "").toString();
+            if (["video", "audio", "file"].includes(k)) return false;
             return true;
           });
           if (!query) return filtered;
           const q = query.toLowerCase();
           return filtered.filter(
             (it: any) =>
-              (it.title || '').toLowerCase().includes(q) ||
+              (it.title || "").toLowerCase().includes(q) ||
               (it.aliases || []).some((a: string) =>
-                a.toLowerCase().includes(q),
-              ),
+                a.toLowerCase().includes(q)
+              )
           );
         }}
       />
