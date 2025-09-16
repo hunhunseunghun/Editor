@@ -1,8 +1,8 @@
 {
   "name": "@lumir-company/editor",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": false,
-  "description": "Image-only BlockNote based rich text editor with Base64 conversion and theme support",
+  "description": "Image-only BlockNote rich text editor with S3 upload and optimized loading spinner",
   "keywords": [
     "editor",
     "blocknote",
@@ -11,9 +11,9 @@
     "typescript",
     "image-editor",
     "wysiwyg",
-    "base64",
-    "theme",
-    "pretendard"
+    "s3-upload",
+    "loading-spinner",
+    "optimized"
   ],
   "main": "dist/index.js",
   "module": "dist/index.mjs",

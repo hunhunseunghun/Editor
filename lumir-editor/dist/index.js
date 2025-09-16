@@ -24,7 +24,8 @@ __export(index_exports, {
   ContentUtils: () => ContentUtils,
   EditorConfig: () => EditorConfig,
   LumirEditor: () => LumirEditor,
-  cn: () => cn
+  cn: () => cn,
+  createS3Uploader: () => createS3Uploader
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -37,6 +38,69 @@ var import_mantine = require("@blocknote/mantine");
 function cn(...inputs) {
   return inputs.filter(Boolean).join(" ");
 }
+
+// src/utils/s3-uploader.ts
+var createS3Uploader = (config) => {
+  const { apiEndpoint, env, author, userId, path } = config;
+  if (!apiEndpoint || apiEndpoint.trim() === "") {
+    throw new Error(
+      "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
+    );
+  }
+  if (!env) {
+    throw new Error("env is required. Must be 'development' or 'production'.");
+  }
+  if (!author) {
+    throw new Error("author is required. Must be 'admin' or 'user'.");
+  }
+  if (!userId || userId.trim() === "") {
+    throw new Error("userId is required and cannot be empty.");
+  }
+  if (!path || path.trim() === "") {
+    throw new Error("path is required and cannot be empty.");
+  }
+  const generateHierarchicalFileName = (file) => {
+    const now = /* @__PURE__ */ new Date();
+    const date = now.toISOString().split("T")[0];
+    const time = now.toTimeString().split(" ")[0];
+    const filename = file.name;
+    return `${env}/${author}/${userId}/${path}/${date}/${time}/${filename}`;
+  };
+  return async (file) => {
+    try {
+      console.log("\u{1F680} S3 \uC5C5\uB85C\uB4DC \uC2DC\uC791:", file.name, "\uD06C\uAE30:", file.size);
+      if (!apiEndpoint || apiEndpoint.trim() === "") {
+        throw new Error(
+          "Invalid apiEndpoint: Cannot upload file without a valid API endpoint."
+        );
+      }
+      const fileName = generateHierarchicalFileName(file);
+      const response = await fetch(
+        `${apiEndpoint}?key=${encodeURIComponent(fileName)}`
+      );
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get presigned URL: ${response.statusText}`);
+      }
+      const responseData = await response.json();
+      const { presignedUrl, publicUrl } = responseData;
+      const uploadResponse = await fetch(presignedUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file
+      });
+      if (!uploadResponse.ok) {
+        throw new Error(`Failed to upload file: ${uploadResponse.statusText}`);
+      }
+      return publicUrl;
+    } catch (error) {
+      console.error("S3 upload failed:", error);
+      throw error;
+    }
+  };
+};
 
 // src/components/LumirEditor.tsx
 var import_jsx_runtime = require("react/jsx-runtime");
@@ -158,32 +222,22 @@ var EditorConfig = class {
     return Array.from(set);
   }
 };
-var createObjectUrlUploader = async (file) => {
-  return URL.createObjectURL(file);
-};
 var isImageFile = (file) => {
   return file.size > 0 && (file.type?.startsWith("image/") || !file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || ""));
 };
-var fileToBase64 = async (file) => await new Promise((resolve, reject) => {
-  const reader = new FileReader();
-  reader.onload = () => resolve(String(reader.result));
-  reader.onerror = () => reject(new Error("FileReader failed"));
-  reader.readAsDataURL(file);
-});
 function LumirEditor({
   // editor options
   initialContent,
   initialEmptyBlocks = 3,
   uploadFile,
+  s3Upload,
   tables,
   heading,
-  animations = true,
   defaultStyles = true,
   disableExtensions,
   tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
   resolveFileUrl,
-  storeImagesAsBase64 = true,
   allowVideoUpload = false,
   allowAudioUpload = false,
   allowFileUpload = false,
@@ -203,6 +257,7 @@ function LumirEditor({
   // callbacks / refs
   onContentChange
 }) {
+  const [isUploading, setIsUploading] = (0, import_react.useState)(false);
   const validatedContent = (0, import_react.useMemo)(() => {
     return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
   }, [initialContent, initialEmptyBlocks]);
@@ -225,12 +280,22 @@ function LumirEditor({
       allowFileUpload
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
+  const memoizedS3Upload = (0, import_react.useMemo)(() => {
+    return s3Upload;
+  }, [
+    s3Upload?.apiEndpoint,
+    s3Upload?.env,
+    s3Upload?.author,
+    s3Upload?.userId,
+    s3Upload?.path
+  ]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
       initialContent: validatedContent,
       tables: tableConfig,
       heading: headingConfig,
-      animations,
+      animations: false,
+      // 기본적으로 애니메이션 비활성화
       defaultStyles,
       // 확장 비활성: 비디오/오디오/파일 제어
       disableExtensions: disabledExtensions,
@@ -241,17 +306,22 @@ function LumirEditor({
         if (!isImageFile(file)) {
           throw new Error("Only image files are allowed");
         }
-        const custom = uploadFile;
-        const fallback = storeImagesAsBase64 ? fileToBase64 : createObjectUrlUploader;
         try {
-          if (custom) return await custom(file);
-          return await fallback(file);
-        } catch (_) {
-          try {
-            return await createObjectUrlUploader(file);
-          } catch {
-            throw new Error("Failed to process file for upload");
+          let imageUrl;
+          if (uploadFile) {
+            imageUrl = await uploadFile(file);
+          } else if (memoizedS3Upload?.apiEndpoint) {
+            const s3Uploader = createS3Uploader(memoizedS3Upload);
+            imageUrl = await s3Uploader(file);
+          } else {
+            throw new Error("No upload method available");
           }
+          return imageUrl;
+        } catch (error) {
+          console.error("Image upload failed:", error);
+          throw new Error(
+            "Upload failed: " + (error instanceof Error ? error.message : String(error))
+          );
         }
       },
       pasteHandler: (ctx) => {
@@ -268,17 +338,22 @@ function LumirEditor({
         }
         event.preventDefault();
         (async () => {
-          for (const file of acceptedFiles) {
-            try {
-              const url = await editor2.uploadFile(file);
-              editor2.pasteHTML(`<img src="${url}" alt="image" />`);
-            } catch (err) {
-              console.warn(
-                "Image upload failed, skipped:",
-                file.name || "",
-                err
-              );
+          setIsUploading(true);
+          try {
+            for (const file of acceptedFiles) {
+              try {
+                const url = await editor2.uploadFile(file);
+                editor2.pasteHTML(`<img src="${url}" alt="image" />`);
+              } catch (err) {
+                console.warn(
+                  "Image upload failed, skipped:",
+                  file.name || "",
+                  err
+                );
+              }
             }
+          } finally {
+            setIsUploading(false);
           }
         })();
         return true;
@@ -288,14 +363,13 @@ function LumirEditor({
       validatedContent,
       tableConfig,
       headingConfig,
-      animations,
       defaultStyles,
       disabledExtensions,
       tabBehavior,
       trailingBlock,
       resolveFileUrl,
       uploadFile,
-      storeImagesAsBase64
+      memoizedS3Upload
     ]
   );
   (0, import_react.useEffect)(() => {
@@ -333,17 +407,26 @@ function LumirEditor({
       const acceptedFiles = files.filter(isImageFile);
       if (acceptedFiles.length === 0) return;
       (async () => {
-        for (const file of acceptedFiles) {
-          try {
-            if (editor?.uploadFile) {
-              const url = await editor.uploadFile(file);
-              if (url) {
-                editor.pasteHTML(`<img src="${url}" alt="image" />`);
+        setIsUploading(true);
+        try {
+          for (const file of acceptedFiles) {
+            try {
+              if (editor?.uploadFile) {
+                const url = await editor.uploadFile(file);
+                if (url) {
+                  editor.pasteHTML(`<img src="${url}" alt="image" />`);
+                }
               }
+            } catch (err) {
+              console.warn(
+                "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
             }
-          } catch (err) {
-            console.warn("Image upload failed, skipped:", file.name || "", err);
           }
+        } finally {
+          setIsUploading(false);
         }
       })();
     };
@@ -362,58 +445,69 @@ function LumirEditor({
   const DragHandleOnlySideMenu = (0, import_react.useMemo)(() => {
     return (props) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenu, { ...props, children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.DragHandleButton, { ...props }) });
   }, []);
-  return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: cn("lumirEditor", className), children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
-    import_mantine.BlockNoteView,
+  return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+    "div",
     {
-      editor,
-      editable,
-      theme,
-      formattingToolbar,
-      linkToolbar,
-      sideMenu: computedSideMenu,
-      slashMenu: false,
-      emojiPicker,
-      filePanel,
-      tableHandles,
-      onSelectionChange,
+      className: cn("lumirEditor", className),
+      style: { position: "relative" },
       children: [
-        slashMenu && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
-          import_react2.SuggestionMenuController,
+        /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(
+          import_mantine.BlockNoteView,
           {
-            triggerCharacter: "/",
-            getItems: (0, import_react.useCallback)(
-              async (query) => {
-                const items = (0, import_react2.getDefaultReactSlashMenuItems)(editor);
-                const filtered = items.filter((item) => {
-                  const key = (item?.key || "").toString().toLowerCase();
-                  const title = (item?.title || "").toString().toLowerCase();
-                  if (["video", "audio", "file"].includes(key)) return false;
-                  if (title.includes("video") || title.includes("audio") || title.includes("file"))
-                    return false;
-                  return true;
-                });
-                if (!query) return filtered;
-                const q = query.toLowerCase();
-                return filtered.filter(
-                  (item) => item.title?.toLowerCase().includes(q) || (item.aliases || []).some(
-                    (a) => a.toLowerCase().includes(q)
+            editor,
+            editable,
+            theme,
+            formattingToolbar,
+            linkToolbar,
+            sideMenu: computedSideMenu,
+            slashMenu: false,
+            emojiPicker,
+            filePanel,
+            tableHandles,
+            onSelectionChange,
+            children: [
+              slashMenu && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+                import_react2.SuggestionMenuController,
+                {
+                  triggerCharacter: "/",
+                  getItems: (0, import_react.useCallback)(
+                    async (query) => {
+                      const items = (0, import_react2.getDefaultReactSlashMenuItems)(editor);
+                      const filtered = items.filter((item) => {
+                        const key = (item?.key || "").toString().toLowerCase();
+                        const title = (item?.title || "").toString().toLowerCase();
+                        if (["video", "audio", "file"].includes(key)) return false;
+                        if (title.includes("video") || title.includes("audio") || title.includes("file"))
+                          return false;
+                        return true;
+                      });
+                      if (!query) return filtered;
+                      const q = query.toLowerCase();
+                      return filtered.filter(
+                        (item) => item.title?.toLowerCase().includes(q) || (item.aliases || []).some(
+                          (a) => a.toLowerCase().includes(q)
+                        )
+                      );
+                    },
+                    [editor]
                   )
-                );
-              },
-              [editor]
-            )
+                }
+              ),
+              !sideMenuAddButton && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenuController, { sideMenu: DragHandleOnlySideMenu })
+            ]
           }
         ),
-        !sideMenuAddButton && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_react2.SideMenuController, { sideMenu: DragHandleOnlySideMenu })
+        isUploading && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "lumirEditor-upload-overlay", children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "lumirEditor-spinner" }) })
       ]
     }
-  ) });
+  );
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   ContentUtils,
   EditorConfig,
   LumirEditor,
-  cn
+  cn,
+  createS3Uploader
 });
 //# sourceMappingURL=index.js.map

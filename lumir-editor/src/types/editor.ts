@@ -4,7 +4,7 @@ import type {
   DefaultBlockSchema,
   DefaultInlineContentSchema,
   DefaultStyleSchema,
-} from '@blocknote/core';
+} from "@blocknote/core";
 
 /**
  * LumirEditor에서 사용하는 BlockNote 에디터 타입
@@ -33,8 +33,14 @@ export interface LumirEditorProps {
   initialEmptyBlocks?: number; // 초기 빈 블록 개수 (기본값: 3)
   placeholder?: string; // 첫 번째 블록의 placeholder 텍스트
   uploadFile?: (file: File) => Promise<string>;
-  // 외부 업로더(uploadFile)가 없을 때의 폴백 저장 방식: true=Base64, false=ObjectURL
-  storeImagesAsBase64?: boolean;
+  // S3 업로드 설정
+  s3Upload?: {
+    apiEndpoint: string;
+    env: "development" | "production";
+    author: "admin" | "user";
+    userId: string;
+    path: string;
+  };
   // 미디어 업로드 허용 범위(기본 비활성)
   allowVideoUpload?: boolean;
   allowAudioUpload?: boolean;
@@ -47,18 +53,17 @@ export interface LumirEditorProps {
     headers?: boolean;
   };
   heading?: { levels?: (1 | 2 | 3 | 4 | 5 | 6)[] };
-  animations?: boolean;
   defaultStyles?: boolean;
   disableExtensions?: string[];
-  tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
+  tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
   trailingBlock?: boolean;
   resolveFileUrl?: (url: string) => Promise<string>;
 
   // View options
   editable?: boolean;
   theme?:
-    | 'light'
-    | 'dark'
+    | "light"
+    | "dark"
     | Partial<Record<string, unknown>>
     | {
         light: Partial<Record<string, unknown>>;

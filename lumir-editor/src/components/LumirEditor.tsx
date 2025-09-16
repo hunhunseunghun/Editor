@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useState } from "react";
 import {
   useCreateBlockNote,
   SideMenu as BlockSideMenu,
@@ -8,9 +8,9 @@ import {
   DragHandleButton,
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
-} from '@blocknote/react';
-import { BlockNoteView } from '@blocknote/mantine';
-import { cn } from '../utils/cn';
+} from "@blocknote/react";
+import { BlockNoteView } from "@blocknote/mantine";
+import { cn } from "../utils/cn";
 
 import type {
   DefaultPartialBlock,
@@ -18,7 +18,9 @@ import type {
   DefaultBlockSchema,
   DefaultInlineContentSchema,
   DefaultStyleSchema,
-} from '../types';
+} from "../types";
+
+import { createS3Uploader } from "../utils/s3-uploader";
 
 // ==========================================
 // 유틸리티 클래스들
@@ -66,13 +68,13 @@ export class ContentUtils {
    */
   static createDefaultBlock(): DefaultPartialBlock {
     return {
-      type: 'paragraph',
+      type: "paragraph",
       props: {
-        textColor: 'default',
-        backgroundColor: 'default',
-        textAlignment: 'left',
+        textColor: "default",
+        backgroundColor: "default",
+        textAlignment: "left",
       },
-      content: [{ type: 'text', text: '', styles: {} }],
+      content: [{ type: "text", text: "", styles: {} }],
       children: [],
     };
   }
@@ -85,11 +87,11 @@ export class ContentUtils {
    */
   static validateContent(
     content?: DefaultPartialBlock[] | string,
-    emptyBlockCount: number = 3,
+    emptyBlockCount: number = 3
   ): DefaultPartialBlock[] {
     // 1. 문자열인 경우 JSON 파싱 시도
-    if (typeof content === 'string') {
-      if (content.trim() === '') {
+    if (typeof content === "string") {
+      if (content.trim() === "") {
         return this.createEmptyBlocks(emptyBlockCount);
       }
 
@@ -116,10 +118,10 @@ export class ContentUtils {
    * @returns 생성된 빈 블록 배열
    */
   private static createEmptyBlocks(
-    emptyBlockCount: number,
+    emptyBlockCount: number
   ): DefaultPartialBlock[] {
     return Array.from({ length: emptyBlockCount }, () =>
-      this.createDefaultBlock(),
+      this.createDefaultBlock()
     );
   }
 }
@@ -134,7 +136,7 @@ export class EditorConfig {
    * @param userTables 사용자 테이블 설정
    * @returns 기본값이 적용된 테이블 설정
    */
-  static getDefaultTableConfig(userTables?: LumirEditorProps['tables']) {
+  static getDefaultTableConfig(userTables?: LumirEditorProps["tables"]) {
     return {
       splitCells: userTables?.splitCells ?? true,
       cellBackgroundColor: userTables?.cellBackgroundColor ?? true,
@@ -148,7 +150,7 @@ export class EditorConfig {
    * @param userHeading 사용자 헤딩 설정
    * @returns 기본값이 적용된 헤딩 설정
    */
-  static getDefaultHeadingConfig(userHeading?: LumirEditorProps['heading']) {
+  static getDefaultHeadingConfig(userHeading?: LumirEditorProps["heading"]) {
     return userHeading?.levels && userHeading.levels.length > 0
       ? userHeading
       : { levels: [1, 2, 3, 4, 5, 6] as (1 | 2 | 3 | 4 | 5 | 6)[] };
@@ -166,12 +168,12 @@ export class EditorConfig {
     userExtensions?: string[],
     allowVideo = false,
     allowAudio = false,
-    allowFile = false,
+    allowFile = false
   ): string[] {
     const set = new Set<string>(userExtensions ?? []);
-    if (!allowVideo) set.add('video');
-    if (!allowAudio) set.add('audio');
-    if (!allowFile) set.add('file');
+    if (!allowVideo) set.add("video");
+    if (!allowAudio) set.add("audio");
+    if (!allowFile) set.add("file");
     return Array.from(set);
   }
 }
@@ -184,40 +186,30 @@ const createObjectUrlUploader = async (file: File): Promise<string> => {
 const isImageFile = (file: File): boolean => {
   return (
     file.size > 0 &&
-    (file.type?.startsWith('image/') ||
-      (!file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || '')))
+    (file.type?.startsWith("image/") ||
+      (!file.type && /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name || "")))
   );
 };
-
-// 이미지 파일을 Base64로 변환하는 함수
-const fileToBase64 = async (file: File): Promise<string> =>
-  await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result));
-    reader.onerror = () => reject(new Error('FileReader failed'));
-    reader.readAsDataURL(file);
-  });
 
 export default function LumirEditor({
   // editor options
   initialContent,
   initialEmptyBlocks = 3,
   uploadFile,
+  s3Upload,
   tables,
   heading,
-  animations = true,
   defaultStyles = true,
   disableExtensions,
-  tabBehavior = 'prefer-navigate-ui',
+  tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
   resolveFileUrl,
-  storeImagesAsBase64 = true,
   allowVideoUpload = false,
   allowAudioUpload = false,
   allowFileUpload = false,
   // view options
   editable = true,
-  theme = 'light',
+  theme = "light",
   formattingToolbar = true,
   linkToolbar = true,
   sideMenu = true,
@@ -226,11 +218,13 @@ export default function LumirEditor({
   filePanel = true,
   tableHandles = true,
   onSelectionChange,
-  className = '',
+  className = "",
   sideMenuAddButton = false,
   // callbacks / refs
   onContentChange,
 }: LumirEditorProps) {
+  // 이미지 업로드 로딩 상태
+  const [isUploading, setIsUploading] = useState(false);
   const validatedContent = useMemo<DefaultPartialBlock[]>(() => {
     return ContentUtils.validateContent(initialContent, initialEmptyBlocks);
   }, [initialContent, initialEmptyBlocks]);
@@ -248,7 +242,7 @@ export default function LumirEditor({
   // 헤딩 설정 메모이제이션
   const headingConfig = useMemo(() => {
     return EditorConfig.getDefaultHeadingConfig(heading);
-  }, [heading?.levels?.join(',') ?? '']);
+  }, [heading?.levels?.join(",") ?? ""]);
 
   // 비활성화 확장 메모이제이션
   const disabledExtensions = useMemo(() => {
@@ -256,9 +250,20 @@ export default function LumirEditor({
       disableExtensions,
       allowVideoUpload,
       allowAudioUpload,
-      allowFileUpload,
+      allowFileUpload
     );
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
+
+  // S3 업로드 설정 메모이제이션 (객체 참조 안정화)
+  const memoizedS3Upload = useMemo(() => {
+    return s3Upload;
+  }, [
+    s3Upload?.apiEndpoint,
+    s3Upload?.env,
+    s3Upload?.author,
+    s3Upload?.userId,
+    s3Upload?.path,
+  ]);
 
   const editor = useCreateBlockNote<
     DefaultBlockSchema,
@@ -269,7 +274,7 @@ export default function LumirEditor({
       initialContent: validatedContent as DefaultPartialBlock[],
       tables: tableConfig,
       heading: headingConfig,
-      animations,
+      animations: false, // 기본적으로 애니메이션 비활성화
       defaultStyles,
       // 확장 비활성: 비디오/오디오/파일 제어
       disableExtensions: disabledExtensions,
@@ -279,23 +284,34 @@ export default function LumirEditor({
       uploadFile: async (file) => {
         // 이미지 파일만 허용 (이미지 전용 에디터)
         if (!isImageFile(file)) {
-          throw new Error('Only image files are allowed');
+          throw new Error("Only image files are allowed");
         }
 
-        const custom = uploadFile;
-        const fallback = storeImagesAsBase64
-          ? fileToBase64
-          : createObjectUrlUploader;
         try {
-          if (custom) return await custom(file);
-          return await fallback(file);
-        } catch (_) {
-          // Fallback to ObjectURL when FileReader or custom upload fails
-          try {
-            return await createObjectUrlUploader(file);
-          } catch {
-            throw new Error('Failed to process file for upload');
+          let imageUrl: string;
+
+          // 1. 사용자 정의 uploadFile 우선
+          if (uploadFile) {
+            imageUrl = await uploadFile(file);
           }
+          // 2. S3 업로드 (uploadFile 없을 때)
+          else if (memoizedS3Upload?.apiEndpoint) {
+            const s3Uploader = createS3Uploader(memoizedS3Upload);
+            imageUrl = await s3Uploader(file);
+          }
+          // 3. 업로드 방법이 없으면 에러
+          else {
+            throw new Error("No upload method available");
+          }
+
+          // BlockNote가 자동으로 이미지 블록을 생성하도록 URL만 반환
+          return imageUrl;
+        } catch (error) {
+          console.error("Image upload failed:", error);
+          throw new Error(
+            "Upload failed: " +
+              (error instanceof Error ? error.message : String(error))
+          );
         }
       },
       pasteHandler: (ctx) => {
@@ -318,18 +334,24 @@ export default function LumirEditor({
 
         event.preventDefault();
         (async () => {
-          for (const file of acceptedFiles) {
-            try {
-              // 에디터의 uploadFile 함수 사용 (통일된 로직)
-              const url = await editor.uploadFile(file);
-              editor.pasteHTML(`<img src="${url}" alt="image" />`);
-            } catch (err) {
-              console.warn(
-                'Image upload failed, skipped:',
-                file.name || '',
-                err,
-              );
+          // 붙여넣기로 여러 이미지 업로드 시 로딩 상태 관리
+          setIsUploading(true);
+          try {
+            for (const file of acceptedFiles) {
+              try {
+                // 에디터의 uploadFile 함수 사용 (통일된 로직)
+                const url = await editor.uploadFile(file);
+                editor.pasteHTML(`<img src="${url}" alt="image" />`);
+              } catch (err) {
+                console.warn(
+                  "Image upload failed, skipped:",
+                  file.name || "",
+                  err
+                );
+              }
             }
+          } finally {
+            setIsUploading(false);
           }
         })();
         return true;
@@ -339,15 +361,14 @@ export default function LumirEditor({
       validatedContent,
       tableConfig,
       headingConfig,
-      animations,
       defaultStyles,
       disabledExtensions,
       tabBehavior,
       trailingBlock,
       resolveFileUrl,
       uploadFile,
-      storeImagesAsBase64,
-    ],
+      memoizedS3Upload,
+    ]
   );
 
   // 편집 가능 여부 설정
@@ -379,7 +400,7 @@ export default function LumirEditor({
       if (e.defaultPrevented) return;
       const hasFiles = (
         e.dataTransfer?.types as unknown as string[] | undefined
-      )?.includes?.('Files');
+      )?.includes?.("Files");
       if (hasFiles) {
         e.preventDefault();
         e.stopPropagation();
@@ -390,7 +411,7 @@ export default function LumirEditor({
       if (!e.dataTransfer) return;
       const hasFiles = (
         (e.dataTransfer.types as unknown as string[] | undefined) ?? []
-      ).includes('Files');
+      ).includes("Files");
       if (!hasFiles) return;
 
       e.preventDefault();
@@ -398,7 +419,7 @@ export default function LumirEditor({
 
       const items = Array.from(e.dataTransfer.items ?? []);
       const files = items
-        .filter((it) => it.kind === 'file')
+        .filter((it) => it.kind === "file")
         .map((it) => it.getAsFile())
         .filter((f): f is File => !!f);
 
@@ -408,30 +429,40 @@ export default function LumirEditor({
       if (acceptedFiles.length === 0) return;
 
       (async () => {
-        for (const file of acceptedFiles) {
-          try {
-            // 에디터의 uploadFile 함수 사용 (일관된 로직)
-            if (editor?.uploadFile) {
-              const url = await editor.uploadFile(file);
-              if (url) {
-                editor.pasteHTML(`<img src="${url}" alt="image" />`);
+        // 드래그앤드롭으로 여러 이미지 업로드 시 로딩 상태 관리
+        setIsUploading(true);
+        try {
+          for (const file of acceptedFiles) {
+            try {
+              // 에디터의 uploadFile 함수 사용 (일관된 로직)
+              if (editor?.uploadFile) {
+                const url = await editor.uploadFile(file);
+                if (url) {
+                  editor.pasteHTML(`<img src="${url}" alt="image" />`);
+                }
               }
+            } catch (err) {
+              console.warn(
+                "Image upload failed, skipped:",
+                file.name || "",
+                err
+              );
             }
-          } catch (err) {
-            console.warn('Image upload failed, skipped:', file.name || '', err);
           }
+        } finally {
+          setIsUploading(false);
         }
       })();
     };
 
-    el.addEventListener('dragover', handleDragOver, { capture: true });
-    el.addEventListener('drop', handleDrop, { capture: true });
+    el.addEventListener("dragover", handleDragOver, { capture: true });
+    el.addEventListener("drop", handleDrop, { capture: true });
 
     return () => {
-      el.removeEventListener('dragover', handleDragOver, {
+      el.removeEventListener("dragover", handleDragOver, {
         capture: true,
       } as any);
-      el.removeEventListener('drop', handleDrop, { capture: true } as any);
+      el.removeEventListener("drop", handleDrop, { capture: true } as any);
     };
   }, [editor]);
 
@@ -450,7 +481,10 @@ export default function LumirEditor({
   }, []);
 
   return (
-    <div className={cn('lumirEditor', className)}>
+    <div
+      className={cn("lumirEditor", className)}
+      style={{ position: "relative" }}
+    >
       <BlockNoteView
         editor={editor}
         editable={editable}
@@ -462,23 +496,24 @@ export default function LumirEditor({
         emojiPicker={emojiPicker}
         filePanel={filePanel}
         tableHandles={tableHandles}
-        onSelectionChange={onSelectionChange}>
+        onSelectionChange={onSelectionChange}
+      >
         {slashMenu && (
           <SuggestionMenuController
-            triggerCharacter='/'
+            triggerCharacter="/"
             getItems={useCallback(
               async (query: string) => {
                 const items = getDefaultReactSlashMenuItems(editor);
                 // 비디오, 오디오, 파일 관련 항목 제거
                 const filtered = items.filter((item: any) => {
-                  const key = (item?.key || '').toString().toLowerCase();
-                  const title = (item?.title || '').toString().toLowerCase();
+                  const key = (item?.key || "").toString().toLowerCase();
+                  const title = (item?.title || "").toString().toLowerCase();
                   // 비디오, 오디오, 파일 관련 항목 제거
-                  if (['video', 'audio', 'file'].includes(key)) return false;
+                  if (["video", "audio", "file"].includes(key)) return false;
                   if (
-                    title.includes('video') ||
-                    title.includes('audio') ||
-                    title.includes('file')
+                    title.includes("video") ||
+                    title.includes("audio") ||
+                    title.includes("file")
                   )
                     return false;
                   return true;
@@ -490,11 +525,11 @@ export default function LumirEditor({
                   (item: any) =>
                     item.title?.toLowerCase().includes(q) ||
                     (item.aliases || []).some((a: string) =>
-                      a.toLowerCase().includes(q),
-                    ),
+                      a.toLowerCase().includes(q)
+                    )
                 );
               },
-              [editor],
+              [editor]
             )}
           />
         )}
@@ -502,6 +537,13 @@ export default function LumirEditor({
           <SideMenuController sideMenu={DragHandleOnlySideMenu} />
         )}
       </BlockNoteView>
+
+      {/* 이미지 업로드 로딩 스피너 */}
+      {isUploading && (
+        <div className="lumirEditor-upload-overlay">
+          <div className="lumirEditor-spinner" />
+        </div>
+      )}
     </div>
   );
 }

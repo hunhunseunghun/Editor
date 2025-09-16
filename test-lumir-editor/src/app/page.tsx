@@ -1,30 +1,49 @@
 "use client";
 
-import React from "react";
-import Sidebar from "@/components/Sidebar";
-import Header from "@/components/Header";
-import EditorArea from "@/components/EditorArea";
+import dynamic from "next/dynamic";
+import { useState } from "react";
+import type { DefaultPartialBlock } from "@lumir-company/editor";
+
+// SSR 비활성화로 에디터 동적 로드
+const LumirEditor = dynamic(
+  () =>
+    import("@lumir-company/editor").then((m) => ({ default: m.LumirEditor })),
+  { ssr: false }
+);
 
 export default function Home() {
-  return (
-    <div className="h-screen bg-stone-50 dark:bg-stone-900 flex overflow-hidden">
-      {/* 사이드바 - 고정 너비 */}
-      <div className="w-55 flex-shrink-0 border-r border-stone-200 dark:border-stone-700">
-        <Sidebar />
-      </div>
+  const [content, setContent] = useState<DefaultPartialBlock[]>([]);
 
-      {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* 헤더 */}
-        <div className="h-16 flex-shrink-0 border-b border-stone-200 dark:border-stone-700">
-          <Header />
+  return (
+    <div className="min-h-screen p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* 제목 */}
+        <h1 className="text-2xl font-bold mb-6">🖼️ S3 이미지 업로드 테스트</h1>
+
+        {/* 에디터 */}
+        <div className="w-full h-[500px] border border-gray-200 rounded-lg">
+          <LumirEditor
+            s3Upload={{
+              apiEndpoint: "/api/s3/presigned",
+              env: "development",
+              author: "user",
+              userId: "test-user-123",
+              path: "test-images",
+            }}
+            onContentChange={setContent}
+            className="h-full"
+            initialContent="이미지를 업로드해보세요! 🚀"
+          />
         </div>
 
-        {/* 에디터 영역 */}
-        <div className="flex-1 overflow-hidden">
-          <div className="flex justify-center items-center w-full h-full">
-            <EditorArea />
-          </div>
+        {/* 콘텐츠 미리보기 */}
+        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+          <h2 className="font-semibold mb-2">
+            콘텐츠: {content.length}개 블록
+          </h2>
+          <pre className="text-xs overflow-x-auto">
+            {JSON.stringify(content, null, 2)}
+          </pre>
         </div>
       </div>
     </div>

@@ -1,12 +1,13 @@
-@import '@blocknote/core/fonts/inter.css';
-@import '@blocknote/mantine/style.css';
-@import '@blocknote/react/style.css';
+@import "@blocknote/core/fonts/inter.css";
+@import "@blocknote/mantine/style.css";
+@import "@blocknote/react/style.css";
 
 .lumirEditor {
   width: 100%;
   height: 100%;
-  min-width: 250px;
+  min-width: 200px;
   overflow: auto;
+  background-color: #ffffff;
 }
 
 /* 포커스 상태 스타일 */
@@ -19,8 +20,8 @@
 /* BlockNote 에디터 내부 폰트 설정 */
 .lumirEditor .bn-editor,
 .lumirEditor .bn-inline-content {
-  font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont,
-    'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  font-family: "Pretendard", "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", sans-serif;
 }
 
 /* CSS 변수를 사용한 패딩 설정 */
@@ -32,6 +33,39 @@
 }
 
 /* 문단 텍스트 크기 설정 */
-.lumirEditor [data-content-type='paragraph'] {
+.lumirEditor [data-content-type="paragraph"] {
   font-size: 14px;
+}
+
+/* 이미지 업로드 로딩 스피너 */
+.lumirEditor-upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+}
+
+.lumirEditor-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: lumir-spin 1s linear infinite;
+}
+
+@keyframes lumir-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }

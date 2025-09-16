@@ -18,7 +18,13 @@ interface LumirEditorProps {
     initialEmptyBlocks?: number;
     placeholder?: string;
     uploadFile?: (file: File) => Promise<string>;
-    storeImagesAsBase64?: boolean;
+    s3Upload?: {
+        apiEndpoint: string;
+        env: "development" | "production";
+        author: "admin" | "user";
+        userId: string;
+        path: string;
+    };
     allowVideoUpload?: boolean;
     allowAudioUpload?: boolean;
     allowFileUpload?: boolean;
@@ -31,14 +37,13 @@ interface LumirEditorProps {
     heading?: {
         levels?: (1 | 2 | 3 | 4 | 5 | 6)[];
     };
-    animations?: boolean;
     defaultStyles?: boolean;
     disableExtensions?: string[];
-    tabBehavior?: 'prefer-navigate-ui' | 'prefer-indent';
+    tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
     trailingBlock?: boolean;
     resolveFileUrl?: (url: string) => Promise<string>;
     editable?: boolean;
-    theme?: 'light' | 'dark' | Partial<Record<string, unknown>> | {
+    theme?: "light" | "dark" | Partial<Record<string, unknown>> | {
         light: Partial<Record<string, unknown>>;
         dark: Partial<Record<string, unknown>>;
     };
@@ -101,7 +106,7 @@ declare class EditorConfig {
      * @param userTables 사용자 테이블 설정
      * @returns 기본값이 적용된 테이블 설정
      */
-    static getDefaultTableConfig(userTables?: LumirEditorProps['tables']): {
+    static getDefaultTableConfig(userTables?: LumirEditorProps["tables"]): {
         splitCells: boolean;
         cellBackgroundColor: boolean;
         cellTextColor: boolean;
@@ -112,7 +117,7 @@ declare class EditorConfig {
      * @param userHeading 사용자 헤딩 설정
      * @returns 기본값이 적용된 헤딩 설정
      */
-    static getDefaultHeadingConfig(userHeading?: LumirEditorProps['heading']): {
+    static getDefaultHeadingConfig(userHeading?: LumirEditorProps["heading"]): {
         levels?: (1 | 2 | 3 | 4 | 5 | 6)[];
     };
     /**
@@ -125,8 +130,17 @@ declare class EditorConfig {
      */
     static getDisabledExtensions(userExtensions?: string[], allowVideo?: boolean, allowAudio?: boolean, allowFile?: boolean): string[];
 }
-declare function LumirEditor({ initialContent, initialEmptyBlocks, uploadFile, tables, heading, animations, defaultStyles, disableExtensions, tabBehavior, trailingBlock, resolveFileUrl, storeImagesAsBase64, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, slashMenu, emojiPicker, filePanel, tableHandles, onSelectionChange, className, sideMenuAddButton, onContentChange, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
+declare function LumirEditor({ initialContent, initialEmptyBlocks, uploadFile, s3Upload, tables, heading, defaultStyles, disableExtensions, tabBehavior, trailingBlock, resolveFileUrl, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, slashMenu, emojiPicker, filePanel, tableHandles, onSelectionChange, className, sideMenuAddButton, onContentChange, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
 
 declare function cn(...inputs: (string | undefined | null | false)[]): string;
 
-export { ContentUtils, type DefaultPartialBlock, EditorConfig, type EditorType, LumirEditor, type LumirEditorProps, cn };
+interface S3UploaderConfig {
+    apiEndpoint: string;
+    env: "production" | "development";
+    author: "admin" | "user";
+    userId: string;
+    path: string;
+}
+declare const createS3Uploader: (config: S3UploaderConfig) => (file: File) => Promise<string>;
+
+export { ContentUtils, type DefaultPartialBlock, EditorConfig, type EditorType, LumirEditor, type LumirEditorProps, type S3UploaderConfig, cn, createS3Uploader };
