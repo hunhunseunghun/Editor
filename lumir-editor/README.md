@@ -84,6 +84,15 @@ interface S3UploaderConfig {
 }
 ```
 
+지원 이미지 파일
+"image/png", // PNG
+"image/jpeg", // JPEG/JPG  
+ "image/jpg", // JPG
+"image/gif", // GIF (애니메이션 포함)
+"image/webp", // WebP
+"image/bmp", // BMP
+"image/svg+xml", // SVG
+
 ## 🖼️ 이미지 업로드 방식
 
 ### 1. S3 업로드 (권장)
