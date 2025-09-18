@@ -39,7 +39,6 @@ interface LumirEditorProps {
     disableExtensions?: string[];
     tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
     trailingBlock?: boolean;
-    resolveFileUrl?: (url: string) => Promise<string>;
     editable?: boolean;
     theme?: "light" | "dark" | Partial<Record<string, unknown>> | {
         light: Partial<Record<string, unknown>>;
@@ -48,7 +47,6 @@ interface LumirEditorProps {
     formattingToolbar?: boolean;
     linkToolbar?: boolean;
     sideMenu?: boolean;
-    slashMenu?: boolean;
     emojiPicker?: boolean;
     filePanel?: boolean;
     tableHandles?: boolean;
@@ -128,7 +126,7 @@ declare class EditorConfig {
      */
     static getDisabledExtensions(userExtensions?: string[], allowVideo?: boolean, allowAudio?: boolean, allowFile?: boolean): string[];
 }
-declare function LumirEditor({ initialContent, initialEmptyBlocks, uploadFile, s3Upload, tables, heading, defaultStyles, disableExtensions, tabBehavior, trailingBlock, resolveFileUrl, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, slashMenu, emojiPicker, filePanel, tableHandles, onSelectionChange, className, sideMenuAddButton, onContentChange, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
+declare function LumirEditor({ initialContent, initialEmptyBlocks, uploadFile, s3Upload, tables, heading, defaultStyles, disableExtensions, tabBehavior, trailingBlock, allowVideoUpload, allowAudioUpload, allowFileUpload, editable, theme, formattingToolbar, linkToolbar, sideMenu, emojiPicker, filePanel, tableHandles, onSelectionChange, className, sideMenuAddButton, onContentChange, }: LumirEditorProps): react_jsx_runtime.JSX.Element;
 
 declare function cn(...inputs: (string | undefined | null | false)[]): string;
 

@@ -230,7 +230,6 @@ function LumirEditor({
   disableExtensions,
   tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
-  resolveFileUrl,
   allowVideoUpload = false,
   allowAudioUpload = false,
   allowFileUpload = false,
@@ -240,7 +239,6 @@ function LumirEditor({
   formattingToolbar = true,
   linkToolbar = true,
   sideMenu = true,
-  slashMenu = true,
   emojiPicker = true,
   filePanel = true,
   tableHandles = true,
@@ -288,7 +286,6 @@ function LumirEditor({
       disableExtensions: disabledExtensions,
       tabBehavior,
       trailingBlock,
-      resolveFileUrl,
       uploadFile: async (file) => {
         if (!isImageFile(file)) {
           throw new Error("Only image files are allowed");
@@ -354,7 +351,6 @@ function LumirEditor({
       disabledExtensions,
       tabBehavior,
       trailingBlock,
-      resolveFileUrl,
       uploadFile,
       memoizedS3Upload
     ]
@@ -453,7 +449,7 @@ function LumirEditor({
             tableHandles,
             onSelectionChange,
             children: [
-              slashMenu && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
+              /* @__PURE__ */ (0, import_jsx_runtime.jsx)(
                 import_react2.SuggestionMenuController,
                 {
                   triggerCharacter: "/",

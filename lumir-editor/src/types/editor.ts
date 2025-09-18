@@ -55,7 +55,6 @@ export interface LumirEditorProps {
   disableExtensions?: string[];
   tabBehavior?: "prefer-navigate-ui" | "prefer-indent";
   trailingBlock?: boolean;
-  resolveFileUrl?: (url: string) => Promise<string>;
 
   // View options
   editable?: boolean;
@@ -70,7 +69,6 @@ export interface LumirEditorProps {
   formattingToolbar?: boolean;
   linkToolbar?: boolean;
   sideMenu?: boolean;
-  slashMenu?: boolean;
   emojiPicker?: boolean;
   filePanel?: boolean;
   tableHandles?: boolean;

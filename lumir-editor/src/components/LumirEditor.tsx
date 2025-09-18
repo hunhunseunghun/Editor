@@ -199,7 +199,6 @@ export default function LumirEditor({
   disableExtensions,
   tabBehavior = "prefer-navigate-ui",
   trailingBlock = true,
-  resolveFileUrl,
   allowVideoUpload = false,
   allowAudioUpload = false,
   allowFileUpload = false,
@@ -209,7 +208,6 @@ export default function LumirEditor({
   formattingToolbar = true,
   linkToolbar = true,
   sideMenu = true,
-  slashMenu = true,
   emojiPicker = true,
   filePanel = true,
   tableHandles = true,
@@ -270,7 +268,6 @@ export default function LumirEditor({
       disableExtensions: disabledExtensions,
       tabBehavior,
       trailingBlock,
-      resolveFileUrl,
       uploadFile: async (file) => {
         // 이미지 파일만 허용 (이미지 전용 에디터)
         if (!isImageFile(file)) {
@@ -355,7 +352,6 @@ export default function LumirEditor({
       disabledExtensions,
       tabBehavior,
       trailingBlock,
-      resolveFileUrl,
       uploadFile,
       memoizedS3Upload,
     ]
@@ -488,7 +484,7 @@ export default function LumirEditor({
         tableHandles={tableHandles}
         onSelectionChange={onSelectionChange}
       >
-        {slashMenu && (
+        {
           <SuggestionMenuController
             triggerCharacter="/"
             getItems={useCallback(
@@ -522,7 +518,7 @@ export default function LumirEditor({
               [editor]
             )}
           />
-        )}
+        }
         {!sideMenuAddButton && (
           <SideMenuController sideMenu={DragHandleOnlySideMenu} />
         )}
