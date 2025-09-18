@@ -100,7 +100,7 @@ interface S3UploaderConfig {
   s3Upload={{
     apiEndpoint: "/api/s3/presigned",
     env: "development",
-    path: "editor-images",
+    path: "depth1/depth2/depth3",
   }}
   onContentChange={(blocks) => console.log(blocks)}
 />
