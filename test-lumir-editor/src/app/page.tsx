@@ -26,7 +26,7 @@ export default function Home() {
             s3Upload={{
               apiEndpoint: "/api/s3/presigned",
               env: "development",
-              path: "test-images",
+              path: "anotherPath",
             }}
             onContentChange={setContent}
             className="h-full"
