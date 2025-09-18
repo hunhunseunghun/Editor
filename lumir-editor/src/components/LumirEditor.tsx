@@ -178,10 +178,6 @@ export class EditorConfig {
   }
 }
 
-const createObjectUrlUploader = async (file: File): Promise<string> => {
-  return URL.createObjectURL(file);
-};
-
 // 파일 타입 검증 함수
 const isImageFile = (file: File): boolean => {
   return (
@@ -257,13 +253,7 @@ export default function LumirEditor({
   // S3 업로드 설정 메모이제이션 (객체 참조 안정화)
   const memoizedS3Upload = useMemo(() => {
     return s3Upload;
-  }, [
-    s3Upload?.apiEndpoint,
-    s3Upload?.env,
-    s3Upload?.author,
-    s3Upload?.userId,
-    s3Upload?.path,
-  ]);
+  }, [s3Upload?.apiEndpoint, s3Upload?.env, s3Upload?.path]);
 
   const editor = useCreateBlockNote<
     DefaultBlockSchema,

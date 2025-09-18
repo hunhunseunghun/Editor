@@ -78,8 +78,6 @@ export default function Editor() {
 interface S3UploaderConfig {
   apiEndpoint: string; // '/api/s3/presigned' (필수)
   env: "development" | "production"; // 환경 (필수)
-  author: "admin" | "user"; // 작성자 타입 (필수)
-  userId: string; // 사용자 ID (필수)
   path: string; // 파일 경로 (필수)
 }
 ```
@@ -102,8 +100,6 @@ interface S3UploaderConfig {
   s3Upload={{
     apiEndpoint: "/api/s3/presigned",
     env: "development",
-    author: "user",
-    userId: "user123",
     path: "editor-images",
   }}
   onContentChange={(blocks) => console.log(blocks)}
@@ -134,8 +130,6 @@ import { LumirEditor, createS3Uploader } from "@lumir-company/editor";
 const s3Uploader = createS3Uploader({
   apiEndpoint: "/api/s3/presigned",
   env: "production",
-  author: "user",
-  userId: "user123",
   path: "images",
 });
 
@@ -190,7 +184,7 @@ const headingConfig = EditorConfig.getDefaultHeadingConfig();
 1. **CSS 임포트 필수**: `import "@lumir-company/editor/style.css";`
 2. **Next.js SSR 비활성화**: `dynamic`으로 클라이언트 사이드 렌더링만 사용
 3. **이미지만 지원**: PNG, JPG, GIF, WebP, BMP, SVG (비디오/오디오/파일 ❌)
-4. **S3 설정**: 계층 구조 `{env}/{author}/{userId}/{path}/{date}/{time}/{filename}`
+4. **S3 설정**: 계층 구조 `{env}/{path}/{filename}`
 
 ## 📄 라이선스
 

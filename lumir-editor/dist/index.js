@@ -41,7 +41,7 @@ function cn(...inputs) {
 
 // src/utils/s3-uploader.ts
 var createS3Uploader = (config) => {
-  const { apiEndpoint, env, author, userId, path } = config;
+  const { apiEndpoint, env, path } = config;
   if (!apiEndpoint || apiEndpoint.trim() === "") {
     throw new Error(
       "apiEndpoint is required for S3 upload. Please provide a valid API endpoint."
@@ -50,25 +50,16 @@ var createS3Uploader = (config) => {
   if (!env) {
     throw new Error("env is required. Must be 'development' or 'production'.");
   }
-  if (!author) {
-    throw new Error("author is required. Must be 'admin' or 'user'.");
-  }
-  if (!userId || userId.trim() === "") {
-    throw new Error("userId is required and cannot be empty.");
-  }
   if (!path || path.trim() === "") {
     throw new Error("path is required and cannot be empty.");
   }
   const generateHierarchicalFileName = (file) => {
     const now = /* @__PURE__ */ new Date();
-    const date = now.toISOString().split("T")[0];
-    const time = now.toTimeString().split(" ")[0];
     const filename = file.name;
-    return `${env}/${author}/${userId}/${path}/${date}/${time}/${filename}`;
+    return `${env}/${path}/${filename}`;
   };
   return async (file) => {
     try {
-      console.log("\u{1F680} S3 \uC5C5\uB85C\uB4DC \uC2DC\uC791:", file.name, "\uD06C\uAE30:", file.size);
       if (!apiEndpoint || apiEndpoint.trim() === "") {
         throw new Error(
           "Invalid apiEndpoint: Cannot upload file without a valid API endpoint."
@@ -79,8 +70,10 @@ var createS3Uploader = (config) => {
         `${apiEndpoint}?key=${encodeURIComponent(fileName)}`
       );
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get presigned URL: ${response.statusText}`);
+        const errorText = await response.text() || "";
+        throw new Error(
+          `Failed to get presigned URL: ${response.statusText}, ${errorText}`
+        );
       }
       const responseData = await response.json();
       const { presignedUrl, publicUrl } = responseData;
@@ -282,13 +275,7 @@ function LumirEditor({
   }, [disableExtensions, allowVideoUpload, allowAudioUpload, allowFileUpload]);
   const memoizedS3Upload = (0, import_react.useMemo)(() => {
     return s3Upload;
-  }, [
-    s3Upload?.apiEndpoint,
-    s3Upload?.env,
-    s3Upload?.author,
-    s3Upload?.userId,
-    s3Upload?.path
-  ]);
+  }, [s3Upload?.apiEndpoint, s3Upload?.env, s3Upload?.path]);
   const editor = (0, import_react2.useCreateBlockNote)(
     {
       initialContent: validatedContent,

@@ -1,13 +1,11 @@
 export interface S3UploaderConfig {
   apiEndpoint: string; // '/api/s3/presigned'(필수)
   env: "production" | "development"; // 환경 (필수)
-  author: "admin" | "user"; // 작성자 타입 (필수)
-  userId: string; // 사용자 ID (필수)
   path: string; // 파일 경로 (필수)
 }
 
 export const createS3Uploader = (config: S3UploaderConfig) => {
-  const { apiEndpoint, env, author, userId, path } = config;
+  const { apiEndpoint, env, path } = config;
 
   // 필수 파라미터 검증
   if (!apiEndpoint || apiEndpoint.trim() === "") {
@@ -20,14 +18,6 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
     throw new Error("env is required. Must be 'development' or 'production'.");
   }
 
-  if (!author) {
-    throw new Error("author is required. Must be 'admin' or 'user'.");
-  }
-
-  if (!userId || userId.trim() === "") {
-    throw new Error("userId is required and cannot be empty.");
-  }
-
   if (!path || path.trim() === "") {
     throw new Error("path is required and cannot be empty.");
   }
@@ -37,22 +27,16 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
     const now = new Date();
 
     // 날짜 (yyyy-mm-dd)
-    const date = now.toISOString().split("T")[0];
-
-    // 시간 (hh:mm:ss)
-    const time = now.toTimeString().split(" ")[0];
 
     // 파일명
     const filename = file.name;
 
-    // {env}/{author}/{userId}/{path}/{date}/{time}/{filename}
-    return `${env}/${author}/${userId}/${path}/${date}/${time}/${filename}`;
+    // {env}/{path}/{date}/{time}/{filename}
+    return `${env}/${path}/${filename}`;
   };
 
   return async (file: File): Promise<string> => {
     try {
-      console.log("🚀 S3 업로드 시작:", file.name, "크기:", file.size);
-
       // 파일 업로드 시에도 apiEndpoint 재검증
       if (!apiEndpoint || apiEndpoint.trim() === "") {
         throw new Error(
@@ -69,8 +53,10 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
       );
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to get presigned URL: ${response.statusText}`);
+        const errorText = (await response.text()) || "";
+        throw new Error(
+          `Failed to get presigned URL: ${response.statusText}, ${errorText}`
+        );
       }
 
       const responseData = await response.json();

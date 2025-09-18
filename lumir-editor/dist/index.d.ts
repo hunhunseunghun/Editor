@@ -21,8 +21,6 @@ interface LumirEditorProps {
     s3Upload?: {
         apiEndpoint: string;
         env: "development" | "production";
-        author: "admin" | "user";
-        userId: string;
         path: string;
     };
     allowVideoUpload?: boolean;
@@ -137,8 +135,6 @@ declare function cn(...inputs: (string | undefined | null | false)[]): string;
 interface S3UploaderConfig {
     apiEndpoint: string;
     env: "production" | "development";
-    author: "admin" | "user";
-    userId: string;
     path: string;
 }
 declare const createS3Uploader: (config: S3UploaderConfig) => (file: File) => Promise<string>;

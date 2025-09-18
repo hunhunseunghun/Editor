@@ -26,8 +26,6 @@ export default function Home() {
             s3Upload={{
               apiEndpoint: "/api/s3/presigned",
               env: "development",
-              author: "user",
-              userId: "test-user-123",
               path: "test-images",
             }}
             onContentChange={setContent}

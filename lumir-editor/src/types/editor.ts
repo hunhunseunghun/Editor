@@ -37,8 +37,6 @@ export interface LumirEditorProps {
   s3Upload?: {
     apiEndpoint: string;
     env: "development" | "production";
-    author: "admin" | "user";
-    userId: string;
     path: string;
   };
   // 미디어 업로드 허용 범위(기본 비활성)
