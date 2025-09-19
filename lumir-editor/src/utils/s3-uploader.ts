@@ -40,7 +40,7 @@ export const createS3Uploader = (config: S3UploaderConfig) => {
       // 파일 업로드 시에도 apiEndpoint 재검증
       if (!apiEndpoint || apiEndpoint.trim() === "") {
         throw new Error(
-          "Invalid apiEndpoint: Cannot upload file without a valid API endpoint."
+          "Invalid apiEndpoint: Cannot upload file without a valid API ENDPOINT"
         );
       }
 
