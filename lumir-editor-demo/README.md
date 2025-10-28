@@ -29,13 +29,30 @@ S3_BUCKET_NAME=your_s3_bucket_name
 
 ## Vercel 배포
 
-1. Vercel에 프로젝트 연결
-2. 환경 변수 설정:
-   - `AWS_ACCESS_KEY_ID`
-   - `AWS_SECRET_ACCESS_KEY`
-   - `AWS_REGION`
-   - `S3_BUCKET_NAME`
-3. 배포 실행
+### 1. Vercel에 프로젝트 연결
+
+```bash
+# Vercel CLI 설치 (선택사항)
+npm i -g vercel
+
+# 프로젝트 배포
+vercel
+```
+
+### 2. 환경 변수 설정
+
+Vercel 대시보드 → Settings → Environment Variables에서 다음 변수들을 추가:
+
+- `AWS_ACCESS_KEY_ID` = `your_aws_access_key_id`
+- `AWS_SECRET_ACCESS_KEY` = `your_aws_secret_access_key`
+- `AWS_REGION` = `your_aws_region` (예: `ap-northeast-2`)
+- `S3_BUCKET_NAME` = `your_s3_bucket_name`
+
+**중요**: 모든 환경에서 사용하려면 Production, Preview, Development 모두 체크하세요.
+
+### 3. 재배포
+
+환경 변수 설정 후 자동으로 재배포되거나, 수동으로 재배포를 트리거하세요.
 
 ## 사용된 패키지
 
