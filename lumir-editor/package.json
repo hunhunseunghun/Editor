@@ -1,5 +1,5 @@
 {
-  "name": "@lumir-company/editor",
+  "name": "@kingdoo/editor",
   "version": "0.3.0",
   "private": false,
   "description": "Image-only BlockNote rich text editor with S3 upload and optimized loading spinner",
@@ -23,11 +23,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lumir-company/editor.git"
+    "url": "git+https://github.com/kingdoo/editor.git"
   },
-  "homepage": "https://github.com/lumir-company/editor#readme",
+  "homepage": "https://github.com/kingdoo/editor#readme",
   "bugs": {
-    "url": "https://github.com/lumir-company/editor/issues"
+    "url": "https://github.com/kingdoo/editor/issues"
   },
   "exports": {
     ".": {

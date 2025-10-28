@@ -40,7 +40,7 @@ var createS3Uploader = (config) => {
     try {
       if (!apiEndpoint || apiEndpoint.trim() === "") {
         throw new Error(
-          "Invalid apiEndpoint: Cannot upload file without a valid API endpoint."
+          "Invalid apiEndpoint: Cannot upload file without a valid API ENDPOINT"
         );
       }
       const fileName = generateHierarchicalFileName(file);
